@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API Request Inspector | CIT 105 Module 5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Questrial&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+  :root{
+    --ink:#171310; --paper:#F7F5F2; --au-maroon:#990000; --au-dark:#800000;
+    --au-red:#C00000; --rule:#DED8D2; --muted:#7A716B;
+    --ok:#2E6B4F; --bad:#A32020; --warn:#B26A00; --blue:#1F5C8B;
+    --display:'Questrial','Century Gothic',system-ui,sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--display);
+    line-height:1.55;padding:28px 20px 56px}
+  .wrap{max-width:1180px;margin:0 auto}
+  header{border-bottom:3px solid var(--au-maroon);padding-bottom:18px;margin-bottom:20px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--au-red);margin:0 0 8px}
+  h1{font-size:clamp(27px,3.8vw,42px);margin:0 0 10px;letter-spacing:-.02em}
+  .lede{margin:0;max-width:68ch;color:#40382F;font-size:16px}
+
+  .stage{display:grid;grid-template-columns:1fr 150px 1fr;gap:14px;margin-top:20px;align-items:start}
+  .panel{background:#fff;border:1px solid var(--rule);border-top:4px solid var(--rule);
+    border-radius:2px;padding:15px}
+  .panel.req{border-top-color:var(--blue)}
+  .panel.res{border-top-color:var(--muted)}
+  .panel.res.s2{border-top-color:var(--ok)}
+  .panel.res.s4{border-top-color:var(--warn)}
+  .panel.res.s5{border-top-color:var(--bad)}
+  .panel h2{font-size:17px;margin:0 0 2px}
+  .panel .sub{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 13px}
+
+  .field{margin-bottom:11px}
+  .field label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  select, .field input{width:100%;font-family:var(--mono);font-size:12px;padding:7px 8px;
+    border:1px solid var(--rule);border-radius:2px;background:var(--paper);color:var(--ink)}
+  select:focus, .field input:focus{outline:2px solid var(--blue);outline-offset:1px}
+
+  .headers{background:var(--ink);color:#E8E2DA;font-family:var(--mono);font-size:11px;
+    padding:11px 12px;border-radius:2px;white-space:pre-wrap;word-break:break-all;line-height:1.6}
+  .headers .k{color:#9FC8E8} .headers .v{color:#B9D6A8} .headers .leak{color:#FF9B9B}
+
+  .wire{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    min-height:280px;position:relative}
+  .wire .line{position:absolute;left:8px;right:8px;top:50%;height:2px;background:var(--rule)}
+  .packet{width:34px;height:22px;border-radius:2px;background:var(--blue);position:relative;
+    z-index:2;display:flex;align-items:center;justify-content:center;color:#fff;
+    font-family:var(--mono);font-size:9px;opacity:0}
+  .packet.back{background:var(--ok)}
+  .wire .lab{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);margin-top:14px;text-align:center;min-height:26px;line-height:1.4}
+
+  .status{font-family:var(--mono);font-size:30px;letter-spacing:-.02em;margin:0 0 2px}
+  .status.s2{color:var(--ok)} .status.s4{color:var(--warn)} .status.s5{color:var(--bad)}
+  .status.err{color:var(--bad);font-size:20px}
+  .statustext{font-size:13.5px;color:var(--muted);margin:0 0 12px;min-height:36px;line-height:1.4}
+  .body{background:var(--ink);color:#E8E2DA;font-family:var(--mono);font-size:11.5px;
+    padding:12px;border-radius:2px;white-space:pre-wrap;min-height:110px;max-height:210px;overflow:auto}
+  .body .err{color:#FF9B9B}
+
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 0;align-items:center}
+  button{font-family:var(--mono);font-size:12.5px;padding:10px 14px;cursor:pointer;
+    border:1px solid var(--ink);background:#fff;color:var(--ink);border-radius:2px;
+    transition:background .15s,color .15s,transform .1s}
+  button:hover:not(:disabled){background:var(--ink);color:#fff}
+  button:active:not(:disabled){transform:translateY(1px)}
+  button:focus-visible{outline:3px solid var(--au-red);outline-offset:2px}
+  button:disabled{opacity:.32;cursor:not-allowed}
+  button.primary{background:var(--au-maroon);border-color:var(--au-maroon);color:#fff}
+  button.primary:hover:not(:disabled){background:var(--au-dark);border-color:var(--au-dark)}
+  button.danger{border-color:var(--bad);color:var(--bad)}
+  button.danger:hover{background:var(--bad);color:#fff}
+  .quota{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.08em;
+    text-transform:uppercase;margin-left:auto}
+  .quota b{color:var(--au-maroon)}
+
+  .lesson{margin-top:18px;background:#fff;border:1px solid var(--rule);
+    border-left:4px solid var(--au-maroon);padding:16px 18px;border-radius:2px;display:none}
+  .lesson.show{display:block}
+  .lesson h3{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--au-red);margin:0 0 8px}
+  .lesson p{margin:0 0 9px;font-size:15px;max-width:82ch}
+  .lesson code{font-family:var(--mono);background:var(--paper);padding:1px 5px;font-size:13px}
+  .lesson p:last-child{margin-bottom:0}
+
+  .seen{margin-top:18px;background:#fff;border:1px solid var(--rule);border-radius:2px;padding:16px}
+  .seen h3{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--au-red);margin:0 0 11px}
+  .codes{display:flex;flex-wrap:wrap;gap:7px}
+  .cd{font-family:var(--mono);font-size:11.5px;padding:6px 10px;border:1px solid var(--rule);
+    border-radius:2px;color:#B3AAA3;background:var(--paper)}
+  .cd.hit{color:#fff;border-color:transparent}
+  .cd.hit.s2{background:var(--ok)} .cd.hit.s4{background:var(--warn)}
+  .cd.hit.s5{background:var(--bad)} .cd.hit.se{background:var(--ink)}
+
+  @media (max-width:900px){ .stage{grid-template-columns:1fr} .wire{min-height:110px} }
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">CIT 105 Programming Practice &middot; Module 5</p>
+    <h1>API Request Inspector</h1>
+    <p class="lede">Your application is about to depend on a computer you do not control. It will be slow sometimes, reject you sometimes, and go down occasionally. Build a request below, send it, and read what comes back. Collect all six outcomes, including the two that are not status codes at all.</p>
+  </header>
+
+  <div class="stage">
+
+    <section class="panel req">
+      <h2>Request</h2>
+      <p class="sub">what your code sends</p>
+
+      <div class="field">
+        <label for="ep">endpoint</label>
+        <select id="ep">
+          <option value="ok">POST /v1/messages (valid)</option>
+          <option value="notfound">POST /v1/mesages (typo in path)</option>
+          <option value="down">POST /v1/messages (service having a bad day)</option>
+          <option value="slow">POST /v1/messages (very slow response)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="auth">credentials</label>
+        <select id="auth">
+          <option value="env">Read from environment variable</option>
+          <option value="hard">Hardcoded in the source file</option>
+          <option value="none">No API key sent</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="timeout">timeout</label>
+        <select id="timeout">
+          <option value="0">None set (wait forever)</option>
+          <option value="10">timeout=10 seconds</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>headers your code will send</label>
+        <div class="headers" id="hdrs"></div>
+      </div>
+    </section>
+
+    <div class="wire">
+      <div class="line"></div>
+      <div class="packet" id="packet">REQ</div>
+      <p class="lab" id="wirelab">idle</p>
+    </div>
+
+    <section class="panel res" id="respanel">
+      <h2>Response</h2>
+      <p class="sub">what comes back</p>
+      <p class="status" id="status">&mdash;</p>
+      <p class="statustext" id="statustext">Send a request to see a response.</p>
+      <div class="body" id="body">(no response yet)</div>
+    </section>
+
+  </div>
+
+  <div class="controls">
+    <button id="send" class="primary">Send request</button>
+    <button id="push" class="danger">Commit and push to GitHub</button>
+    <button id="reset">Reset</button>
+    <span class="quota">requests this minute: <b id="q">0</b> / 5</span>
+  </div>
+
+  <div class="lesson" id="lesson">
+    <h3 id="lesson-title">What just happened</h3>
+    <div id="lesson-body"></div>
+  </div>
+
+  <div class="seen">
+    <h3>Outcomes you have triggered</h3>
+    <div class="codes" id="codes"></div>
+    <p style="margin:11px 0 0;font-size:14px;color:var(--muted)">Two of these six are not HTTP status codes. Your code has to survive those as well, and a try block around the call is the only thing that catches them.</p>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const OUTCOMES = [
+    {id:'200', label:'200 OK', cls:'s2'},
+    {id:'401', label:'401 Unauthorized', cls:'s4'},
+    {id:'404', label:'404 Not Found', cls:'s4'},
+    {id:'429', label:'429 Too Many Requests', cls:'s4'},
+    {id:'500', label:'500 Server Error', cls:'s5'},
+    {id:'timeout', label:'ReadTimeout (no status)', cls:'se'},
+    {id:'leak', label:'Key leaked to a public repo', cls:'se'}
+  ];
+  const seen = {};
+
+  const hdrs = document.getElementById('hdrs');
+  const packet = document.getElementById('packet');
+  const wirelab = document.getElementById('wirelab');
+  const statusEl = document.getElementById('status');
+  const statusText = document.getElementById('statustext');
+  const bodyEl = document.getElementById('body');
+  const respanel = document.getElementById('respanel');
+  const lesson = document.getElementById('lesson');
+  const lessonTitle = document.getElementById('lesson-title');
+  const lessonBody = document.getElementById('lesson-body');
+  const codesEl = document.getElementById('codes');
+  const qEl = document.getElementById('q');
+
+  let calls = 0;
+
+  function drawHeaders(){
+    const auth = document.getElementById('auth').value;
+    let keyline;
+    if(auth === 'env'){
+      keyline = '<span class="k">x-api-key</span>: <span class="v">os.environ["ANTHROPIC_API_KEY"]</span>';
+    } else if(auth === 'hard'){
+      keyline = '<span class="k">x-api-key</span>: <span class="leak">sk-ant-api03-7fK2mQ...9dLp</span>  <span class="leak">&lt;- written in your source file</span>';
+    } else {
+      keyline = '<span class="k">x-api-key</span>: <span class="leak">(not sent)</span>';
+    }
+    hdrs.innerHTML =
+      '<span class="k">content-type</span>: <span class="v">application/json</span>\n' +
+      '<span class="k">anthropic-version</span>: <span class="v">2023-06-01</span>\n' + keyline;
+  }
+  document.getElementById('auth').addEventListener('change', drawHeaders);
+
+  function drawCodes(){
+    codesEl.innerHTML = '';
+    OUTCOMES.forEach(function(o){
+      const d = document.createElement('div');
+      d.className = 'cd' + (seen[o.id] ? ' hit ' + o.cls : '');
+      d.textContent = o.label;
+      codesEl.appendChild(d);
+    });
+  }
+
+  function mark(id){
+    const fresh = !seen[id];
+    seen[id] = true;
+    drawCodes();
+    if(fresh && !reduce){
+      const els = codesEl.querySelectorAll('.cd');
+      OUTCOMES.forEach(function(o, i){
+        if(o.id === id) gsap.fromTo(els[i], {scale:.85}, {scale:1, duration:.4, ease:'back.out(3)'});
+      });
+    }
+  }
+
+  function fly(cb){
+    if(reduce){ cb(); return; }
+    gsap.set(packet, {x:-70, opacity:0, backgroundColor:'#1F5C8B'});
+    packet.textContent = 'REQ'; packet.classList.remove('back');
+    gsap.timeline()
+      .to(packet, {opacity:1, duration:.15})
+      .to(packet, {x:60, duration:.55, ease:'power1.inOut'})
+      .to(packet, {opacity:0, duration:.15, onComplete:cb});
+  }
+  function flyBack(color){
+    if(reduce) return;
+    gsap.set(packet, {x:60, opacity:0, backgroundColor:color});
+    packet.textContent = 'RES'; packet.classList.add('back');
+    gsap.timeline()
+      .to(packet, {opacity:1, duration:.15})
+      .to(packet, {x:-70, duration:.55, ease:'power1.inOut'})
+      .to(packet, {opacity:0, duration:.15});
+  }
+
+  function show(code, cls, text, body, isErr){
+    respanel.className = 'panel res ' + (cls || '');
+    statusEl.className = 'status ' + (cls || '') + (isErr ? ' err' : '');
+    statusEl.textContent = code;
+    statusText.textContent = text;
+    bodyEl.innerHTML = isErr ? '<span class="err">' + body + '</span>' : body;
+    if(!reduce) gsap.from([statusEl, bodyEl], {opacity:0, y:8, duration:.35, stagger:.06});
+  }
+
+  function teach(title, html){
+    lessonTitle.textContent = title;
+    lessonBody.innerHTML = html;
+    lesson.classList.add('show');
+    if(!reduce) gsap.from(lesson, {opacity:0, y:10, duration:.4});
+  }
+
+  document.getElementById('send').addEventListener('click', function(){
+    const ep = document.getElementById('ep').value;
+    const auth = document.getElementById('auth').value;
+    const tmo = document.getElementById('timeout').value;
+
+    calls++;
+    qEl.textContent = calls;
+    wirelab.textContent = 'sending...';
+    document.getElementById('send').disabled = true;
+
+    fly(function(){
+      setTimeout(function(){
+        document.getElementById('send').disabled = false;
+
+        if(calls > 5){
+          wirelab.textContent = 'throttled by the server';
+          flyBack('#B26A00');
+          show('429', 's4', 'Too Many Requests. The server is refusing you on purpose.',
+            '{\n  "type": "error",\n  "error": {\n    "type": "rate_limit_error",\n    "message": "Number of requests has exceeded your limit"\n  }\n}');
+          mark('429');
+          teach('429 is not a bug in your code',
+            '<p>You sent six requests in a minute against a limit of five. The server is protecting itself, and it is telling you to wait rather than to fix anything.</p>' +
+            '<p>The correct response is to back off and retry after a delay, not to retry immediately in a loop. A retry loop with no delay turns one 429 into a thousand, and on a paid API it turns a small mistake into a large invoice.</p>' +
+            '<p>Watch for this in your capstone. Any code that calls a model inside a <code>for</code> loop over rows will hit this.</p>');
+          return;
+        }
+
+        if(auth === 'none'){
+          wirelab.textContent = 'rejected at the door';
+          flyBack('#B26A00');
+          show('401', 's4', 'Unauthorized. The request never reached the model.',
+            '{\n  "type": "error",\n  "error": {\n    "type": "authentication_error",\n    "message": "invalid x-api-key"\n  }\n}');
+          mark('401');
+          teach('401 means credentials, not code',
+            '<p>Nothing about your prompt or your JSON was examined. The server stopped at the header. When you see 401, check the key exists, is spelled correctly, and is actually reaching the process.</p>' +
+            '<p>The usual cause in this course is a <code>.env</code> file that was never loaded, so <code>os.environ</code> returns nothing and your code sends an empty string. Print the length of the key, never the key itself, to confirm it loaded.</p>');
+          return;
+        }
+
+        if(ep === 'notfound'){
+          wirelab.textContent = 'server does not know that path';
+          flyBack('#B26A00');
+          show('404', 's4', 'Not Found. The path you asked for does not exist on this server.',
+            '{\n  "type": "error",\n  "error": {\n    "type": "not_found_error",\n    "message": "Unknown endpoint /v1/mesages"\n  }\n}');
+          mark('404');
+          teach('404 is almost always a typo',
+            '<p>Your credentials were fine and the server answered. It simply has nothing at that address. Compare your URL against the documentation character by character.</p>' +
+            '<p>A 404 returns a body, so a program that assumes every response contains the data it wanted will crash on the next line rather than here. That is why you check <code>response.status_code</code> before touching the body.</p>');
+          return;
+        }
+
+        if(ep === 'down'){
+          wirelab.textContent = 'the server broke, not you';
+          flyBack('#A32020');
+          show('500', 's5', 'Internal Server Error. Something failed on their side.',
+            '{\n  "type": "error",\n  "error": {\n    "type": "api_error",\n    "message": "Internal server error"\n  }\n}');
+          mark('500');
+          teach('5xx is their problem and still your responsibility',
+            '<p>Nothing is wrong with your request. The service failed. Your code cannot fix that, but it can decide what the user sees.</p>' +
+            '<p>An application that shows a traceback here looks broken. An application that says "the service is unavailable, try again in a moment" looks finished. Same failure, entirely different impression, about four lines of difference in the code.</p>');
+          return;
+        }
+
+        if(ep === 'slow'){
+          if(tmo === '0'){
+            wirelab.textContent = 'still waiting... forever';
+            show('no response', '', 'Your program is now frozen with no way out.',
+              'The request never returned.\nNo status code, no body, no exception.\nYour Streamlit app is stuck on the spinner\nand the user has closed the tab.', true);
+            mark('timeout');
+            teach('The failure with no status code',
+              '<p>Without a timeout, a request can hang indefinitely. There is no status code to check because no response ever arrived, and no exception to catch because nothing has gone wrong yet as far as Python is concerned.</p>' +
+              '<p>Always pass <code>timeout=</code> to <code>requests.post()</code>. Set it and run this again to see what a well-behaved failure looks like.</p>');
+            return;
+          }
+          wirelab.textContent = 'timed out cleanly';
+          flyBack('#A32020');
+          show('ReadTimeout', '', 'requests.exceptions.ReadTimeout raised after 10 seconds.',
+            'Traceback (most recent call last):\n  ...\nrequests.exceptions.ReadTimeout:\n  HTTPSConnectionPool(host=\'api.anthropic.com\',\n  port=443): Read timed out. (read timeout=10)', true);
+          mark('timeout');
+          teach('An exception, not a status code',
+            '<p>This is the case students forget. There is no <code>response.status_code</code> to inspect, because there is no response. Checking status codes alone will not save you here.</p>' +
+            '<p>Network failures raise exceptions, so the call itself goes inside a <code>try</code> block that catches <code>requests.exceptions.RequestException</code>. Status code checks handle what the server said. The try block handles the server saying nothing at all.</p>');
+          return;
+        }
+
+        wirelab.textContent = 'success';
+        flyBack('#2E6B4F');
+        show('200', 's2', 'OK. The model responded and the body contains your content.',
+          '{\n  "id": "msg_01Xk...",\n  "type": "message",\n  "role": "assistant",\n  "content": [\n    {"type": "text", "text": "Here is your answer..."}\n  ],\n  "usage": {"input_tokens": 24, "output_tokens": 91}\n}');
+        mark('200');
+
+        if(auth === 'hard'){
+          teach('200 OK, and a problem you cannot see yet',
+            '<p>The call worked. Your API key is also sitting in a source file, in plain text, waiting to be committed. Press <b>Commit and push to GitHub</b> and see what happens.</p>' +
+            '<p>Notice the <code>usage</code> block in the response. Every call costs tokens, and every token is billed to whoever owns that key.</p>');
+        } else {
+          teach('200 OK, credentials handled correctly',
+            '<p>The key came from the environment, so it is not in your source and cannot be committed by accident. Your <code>.gitignore</code> excludes the <code>.env</code> file, and the repository contains a <code>.env.example</code> listing the variable names with no values.</p>' +
+            '<p>Read the <code>usage</code> block. Input and output tokens are what you are billed for, which is why a model call inside a loop over 500 rows deserves a moment of thought before you run it.</p>');
+        }
+      }, reduce ? 0 : (ep === 'slow' && tmo === '0' ? 900 : 250));
+    });
+  });
+
+  document.getElementById('push').addEventListener('click', function(){
+    const auth = document.getElementById('auth').value;
+    if(auth !== 'hard'){
+      teach('Nothing sensitive was committed',
+        '<p>Your key lives in an environment variable and the <code>.env</code> file is excluded by <code>.gitignore</code>. The repository contains no credentials, which is the whole objective.</p>' +
+        '<p>Switch credentials to "Hardcoded in the source file" and push again to see the other outcome.</p>');
+      return;
+    }
+    mark('leak');
+    show('pushed', 's5', 'Commit pushed to a public repository.',
+      '$ git push origin main\nEnumerating objects: 7, done.\nTo github.com:student/cit105-week5.git\n   a1c9f2e..7d40b18  main -> main\n\n[4 minutes later]\nAutomated scanner found sk-ant-api03-7fK2mQ...9dLp\nKey used from 3 unfamiliar addresses\nUsage this hour: 2.4M tokens', true);
+    teach('This is not a hypothetical',
+      '<p>Bots scan public GitHub commits continuously for credential patterns, and keys are typically found within minutes of being pushed. Deleting the file afterward does not help, because the key remains in the commit history forever.</p>' +
+      '<p>A leaked key is used, and the owner is billed. Rotate the key immediately, never just delete the line. The only reliable protection is that the key was never in the file in the first place.</p>' +
+      '<p>This is why credentials live in environment variables and why <code>.gitignore</code> is written before the first commit, not after.</p>');
+  });
+
+  document.getElementById('reset').addEventListener('click', function(){
+    calls = 0; qEl.textContent = '0';
+    Object.keys(seen).forEach(function(k){ delete seen[k]; });
+    drawCodes();
+    respanel.className = 'panel res';
+    statusEl.className = 'status'; statusEl.textContent = '\u2014';
+    statusText.textContent = 'Send a request to see a response.';
+    bodyEl.textContent = '(no response yet)';
+    wirelab.textContent = 'idle';
+    lesson.classList.remove('show');
+  });
+
+  drawHeaders(); drawCodes();
+  if(!reduce){
+    gsap.from('header', {opacity:0, y:-10, duration:.5});
+    gsap.from('.panel', {opacity:0, y:14, duration:.45, stagger:.1, delay:.15});
+  }
+})();
+</script>
+</body>
+</html>
