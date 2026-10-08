@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Structured Output Lab | CIT 105 Module 5</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Questrial&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+  :root{
+    --ink:#171310; --paper:#F7F5F2; --au-maroon:#990000; --au-dark:#800000;
+    --au-red:#C00000; --rule:#DED8D2; --muted:#7A716B;
+    --ok:#2E6B4F; --bad:#A32020; --warn:#B26A00; --blue:#1F5C8B;
+    --display:'Questrial','Century Gothic',system-ui,sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--display);
+    line-height:1.55;padding:28px 20px 56px}
+  .wrap{max-width:1180px;margin:0 auto}
+  header{border-bottom:3px solid var(--au-maroon);padding-bottom:18px;margin-bottom:20px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--au-red);margin:0 0 8px}
+  h1{font-size:clamp(27px,3.8vw,42px);margin:0 0 10px;letter-spacing:-.02em}
+  .lede{margin:0;max-width:68ch;color:#40382F;font-size:16px}
+
+  .step{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--au-red);margin:22px 0 9px}
+
+  .picks{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .pick{text-align:left;font-family:var(--display);font-size:13.5px;padding:11px 13px;background:#fff;
+    border:1px solid var(--rule);border-radius:2px;cursor:pointer;line-height:1.4;
+    transition:border-color .15s,box-shadow .15s}
+  .pick:hover{border-color:var(--au-maroon)}
+  .pick[aria-pressed="true"]{border-color:var(--au-maroon);box-shadow:inset 0 0 0 2px var(--au-maroon)}
+  .pick .tag{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .pick code{font-family:var(--mono);font-size:11.5px;color:var(--au-red)}
+  .pick:focus-visible{outline:3px solid var(--au-red);outline-offset:2px}
+
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;align-items:start}
+  .panel{background:#fff;border:1px solid var(--rule);border-top:4px solid var(--rule);
+    border-radius:2px;padding:15px}
+  .panel.model{border-top-color:var(--blue)}
+  .panel.parse{border-top-color:var(--au-red)}
+  .panel h2{font-size:17px;margin:0 0 2px}
+  .panel .sub{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 12px}
+
+  .raw{background:var(--ink);color:#E8E2DA;font-family:var(--mono);font-size:11.5px;
+    padding:13px;border-radius:2px;white-space:pre-wrap;min-height:180px;max-height:250px;overflow:auto;
+    line-height:1.55}
+  .raw .noise{color:#FFD79B}
+  .raw .json{color:#A7E0C0}
+  .raw .cut{color:#FF9B9B}
+
+  .out{background:var(--paper);border:1px solid var(--rule);border-radius:2px;padding:12px;
+    min-height:180px;max-height:250px;overflow:auto}
+  .card{font-family:var(--mono);font-size:11.5px;background:#fff;border:1px solid var(--rule);
+    border-left:3px solid var(--ok);padding:7px 9px;margin-bottom:5px;border-radius:2px}
+  .out .fail{font-family:var(--mono);font-size:12px;color:var(--bad);background:#FBECEC;
+    border-left:3px solid var(--bad);padding:10px 11px;white-space:pre-wrap;line-height:1.5}
+  .out .none{font-size:13px;color:#B3AAA3;font-style:italic}
+
+  .runbar{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 0;align-items:center}
+  button{font-family:var(--mono);font-size:12.5px;padding:10px 14px;cursor:pointer;
+    border:1px solid var(--ink);background:#fff;color:var(--ink);border-radius:2px;
+    transition:background .15s,color .15s,transform .1s}
+  button:hover:not(:disabled){background:var(--ink);color:#fff}
+  button:active:not(:disabled){transform:translateY(1px)}
+  button:focus-visible{outline:3px solid var(--au-red);outline-offset:2px}
+  button:disabled{opacity:.32;cursor:not-allowed}
+  button.primary{background:var(--au-maroon);border-color:var(--au-maroon);color:#fff}
+  button.primary:hover:not(:disabled){background:var(--au-dark);border-color:var(--au-dark)}
+
+  .reliab{margin-top:18px;background:#fff;border:1px solid var(--rule);border-radius:2px;padding:16px}
+  .reliab h3{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--au-red);margin:0 0 12px}
+  .runs{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px;min-height:22px}
+  .dot{width:18px;height:18px;border-radius:2px;background:#EDE8E3}
+  .dot.ok{background:var(--ok)} .dot.no{background:var(--bad)}
+  .rate{display:flex;align-items:baseline;gap:12px}
+  .rate b{font-family:var(--mono);font-size:32px;letter-spacing:-.02em}
+  .rate b.good{color:var(--ok)} .rate b.mid{color:var(--warn)} .rate b.poor{color:var(--bad)}
+  .rate span{font-size:14px;color:var(--muted)}
+
+  .verdict{margin-top:16px;background:#fff;border:1px solid var(--rule);
+    border-left:4px solid var(--au-maroon);padding:16px 18px;border-radius:2px;display:none}
+  .verdict.show{display:block}
+  .verdict h3{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--au-red);margin:0 0 8px}
+  .verdict p{margin:0 0 9px;font-size:15px;max-width:82ch}
+  .verdict p:last-child{margin-bottom:0}
+  .verdict code{font-family:var(--mono);background:var(--paper);padding:1px 5px;font-size:13px}
+
+  @media (max-width:900px){ .cols{grid-template-columns:1fr} .picks{grid-template-columns:1fr} }
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">CIT 105 Programming Practice &middot; Module 5</p>
+    <h1>Structured Output Lab</h1>
+    <p class="lede">You want task cards. The model produces text. Somewhere in between, your program has to turn one into the other, and it has to still work on the day the model wraps its answer in a code fence or opens with "Sure, here you go." Pick a prompt, pick a parser, then run twenty calls and see how many survive.</p>
+  </header>
+
+  <p class="step">Step 1. How precise is your prompt?</p>
+  <div class="picks" id="prompts"></div>
+
+  <p class="step">Step 2. How defensive is your parser?</p>
+  <div class="picks" id="parsers"></div>
+
+  <div class="cols">
+    <section class="panel model">
+      <h2>Model response</h2>
+      <p class="sub">raw text your code receives</p>
+      <div class="raw" id="raw">Choose a prompt and a parser, then run.</div>
+    </section>
+    <section class="panel parse">
+      <h2>After parsing</h2>
+      <p class="sub">what your application actually gets</p>
+      <div class="out" id="out"><p class="none">Nothing yet.</p></div>
+    </section>
+  </div>
+
+  <div class="runbar">
+    <button id="one" class="primary" disabled>Send one request</button>
+    <button id="twenty" disabled>Run 20 requests</button>
+    <button id="reset" disabled>Reset</button>
+  </div>
+
+  <div class="reliab">
+    <h3>Reliability across runs</h3>
+    <div class="runs" id="runs"></div>
+    <div class="rate">
+      <b id="rate">&mdash;</b>
+      <span id="ratetext">Each square is one call. Green means your application got usable data.</span>
+    </div>
+  </div>
+
+  <div class="verdict" id="verdict">
+    <h3>What this combination teaches</h3>
+    <div id="verdict-body"></div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const PROMPTS = [
+    { id:'vague', tag:'vague', label:'Break this project description into tasks.',
+      note:'No format requested at all.',
+      shapes:['prose','prose','fenced','prose','bullets'] },
+    { id:'askjson', tag:'asks for json', label:'Break this into tasks. Return JSON.',
+      note:'Format named, nothing else specified.',
+      shapes:['fenced','preamble','clean','fenced','trailing'] },
+    { id:'schema', tag:'names the schema', label:'Return a JSON array of objects with keys title, priority, and estimate.',
+      note:'Shape specified, but nothing forbids extra text.',
+      shapes:['clean','fenced','clean','preamble','clean'] },
+    { id:'strict', tag:'schema and nothing else', label:'Return only a JSON array of objects with keys title, priority (high, medium, low) and estimate (hours, integer). No preamble, no code fences, no explanation.',
+      note:'Shape, allowed values, and everything forbidden.',
+      shapes:['clean','clean','clean','clean','fenced'] }
+  ];
+
+  const PARSERS = [
+    { id:'naive', tag:'naive', label:'json.loads(text) directly',
+      code:'data = json.loads(response_text)',
+      handles:{clean:true} },
+    { id:'strip', tag:'strips fences', label:'Remove code fences, then json.loads',
+      code:'cleaned = text.replace("```json","").replace("```","").strip()\ndata = json.loads(cleaned)',
+      handles:{clean:true, fenced:true} },
+    { id:'extract', tag:'extracts the block', label:'Find the first [ ... ] block, then json.loads',
+      code:'start = text.find("[")\nend = text.rfind("]") + 1\ndata = json.loads(text[start:end])',
+      handles:{clean:true, fenced:true, preamble:true, trailing:true} },
+    { id:'guard', tag:'extract, validate, fall back', label:'Extract, json.loads inside try, validate keys, return a safe default on failure',
+      code:'try:\n    data = json.loads(extract_array(text))\n    if not all("title" in d for d in data):\n        raise ValueError("missing keys")\nexcept (ValueError, JSONDecodeError):\n    data = []\n    show_user("Could not read the response, try again")',
+      handles:{clean:true, fenced:true, preamble:true, trailing:true, prose:'safe', bullets:'safe', truncated:'safe'} }
+  ];
+
+  const SHAPES = {
+    clean: {
+      raw:'<span class="json">[\n  {"title": "Set up the repository", "priority": "high", "estimate": 1},\n  {"title": "Design the schema", "priority": "high", "estimate": 3},\n  {"title": "Build the entry form", "priority": "medium", "estimate": 4}\n]</span>',
+      cards:['Set up the repository | high | 1h','Design the schema | high | 3h','Build the entry form | medium | 4h'],
+      why:'Valid JSON, nothing around it.' },
+    fenced: {
+      raw:'<span class="noise">```json</span>\n<span class="json">[\n  {"title": "Set up the repository", "priority": "high", "estimate": 1},\n  {"title": "Design the schema", "priority": "high", "estimate": 3}\n]</span>\n<span class="noise">```</span>',
+      cards:['Set up the repository | high | 1h','Design the schema | high | 3h'],
+      why:'Wrapped in a markdown code fence.' },
+    preamble: {
+      raw:'<span class="noise">Sure! Here are the tasks broken down for you:</span>\n\n<span class="json">[\n  {"title": "Set up the repository", "priority": "high", "estimate": 1},\n  {"title": "Build the entry form", "priority": "medium", "estimate": 4}\n]</span>',
+      cards:['Set up the repository | high | 1h','Build the entry form | medium | 4h'],
+      why:'A friendly sentence before the JSON.' },
+    trailing: {
+      raw:'<span class="json">[\n  {"title": "Set up the repository", "priority": "high", "estimate": 1},\n  {"title": "Design the schema", "priority": "high", "estimate": 3}\n]</span>\n\n<span class="noise">Let me know if you would like these broken down further.</span>',
+      cards:['Set up the repository | high | 1h','Design the schema | high | 3h'],
+      why:'Valid JSON followed by a closing remark.' },
+    prose: {
+      raw:'<span class="noise">To build this project you should start by setting up the\nrepository, which is high priority and takes about an hour.\nNext, design the database schema, also high priority, roughly\nthree hours. Finally, build the entry form.</span>',
+      cards:[],
+      why:'No JSON anywhere. The model answered in prose.' },
+    bullets: {
+      raw:'<span class="noise">- Set up the repository (high, 1h)\n- Design the schema (high, 3h)\n- Build the entry form (medium, 4h)</span>',
+      cards:[],
+      why:'A markdown list, which is not JSON.' },
+    truncated: {
+      raw:'<span class="json">[\n  {"title": "Set up the repository", "priority": "high", "estimate": 1},\n  {"title": "Design the sch</span><span class="cut">◂ cut off at max_tokens</span>',
+      cards:[],
+      why:'The response hit the token limit mid-object.' }
+  };
+
+  let prompt = null, parser = null;
+  const results = [];
+
+  const promptsEl = document.getElementById('prompts');
+  const parsersEl = document.getElementById('parsers');
+  const rawEl = document.getElementById('raw');
+  const outEl = document.getElementById('out');
+  const runsEl = document.getElementById('runs');
+  const rateEl = document.getElementById('rate');
+  const rateText = document.getElementById('ratetext');
+  const verdict = document.getElementById('verdict');
+  const verdictBody = document.getElementById('verdict-body');
+
+  PROMPTS.forEach(function(p){
+    const b = document.createElement('button');
+    b.className = 'pick'; b.setAttribute('aria-pressed','false');
+    b.innerHTML = '<span class="tag">' + p.tag + '</span>' + p.label;
+    b.addEventListener('click', function(){
+      prompt = p;
+      Array.prototype.forEach.call(promptsEl.children, function(c){ c.setAttribute('aria-pressed','false'); });
+      b.setAttribute('aria-pressed','true');
+      ready();
+    });
+    promptsEl.appendChild(b);
+  });
+
+  PARSERS.forEach(function(p){
+    const b = document.createElement('button');
+    b.className = 'pick'; b.setAttribute('aria-pressed','false');
+    b.innerHTML = '<span class="tag">' + p.tag + '</span>' + p.label +
+      '<br><code>' + p.code.split('\n')[0].replace(/</g,'&lt;') + '</code>';
+    b.addEventListener('click', function(){
+      parser = p;
+      Array.prototype.forEach.call(parsersEl.children, function(c){ c.setAttribute('aria-pressed','false'); });
+      b.setAttribute('aria-pressed','true');
+      ready();
+    });
+    parsersEl.appendChild(b);
+  });
+
+  function ready(){
+    const on = prompt && parser;
+    document.getElementById('one').disabled = !on;
+    document.getElementById('twenty').disabled = !on;
+    document.getElementById('reset').disabled = !on;
+    verdict.classList.remove('show');
+  }
+
+  function pickShape(){
+    const pool = prompt.shapes.slice();
+    if(Math.random() < 0.06) pool.push('truncated');
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  function evaluate(shape){
+    const h = parser.handles[shape];
+    if(h === true) return 'ok';
+    if(h === 'safe') return 'safe';
+    return 'crash';
+  }
+
+  function render(shape, verdictKind){
+    const s = SHAPES[shape];
+    rawEl.innerHTML = s.raw;
+    if(!reduce) gsap.from(rawEl, {opacity:0, duration:.3});
+
+    outEl.innerHTML = '';
+    if(verdictKind === 'ok'){
+      s.cards.forEach(function(c, i){
+        const d = document.createElement('div');
+        d.className = 'card'; d.textContent = c;
+        outEl.appendChild(d);
+        if(!reduce) gsap.from(d, {opacity:0, x:12, duration:.3, delay:i*.07});
+      });
+    } else if(verdictKind === 'safe'){
+      const d = document.createElement('div');
+      d.className = 'fail';
+      d.style.color = 'var(--warn)';
+      d.style.background = '#FFF3D6';
+      d.style.borderLeftColor = 'var(--warn)';
+      d.textContent = 'Parser caught the failure.\nUser sees: "Could not read the response, try again."\nApplication is still running. No cards added.';
+      outEl.appendChild(d);
+      if(!reduce) gsap.from(d, {opacity:0, duration:.3});
+    } else {
+      const d = document.createElement('div');
+      d.className = 'fail';
+      d.textContent = shape === 'truncated'
+        ? 'json.decoder.JSONDecodeError: Unterminated\nstring starting at: line 3 column 15\n\nApplication crashed. User sees a traceback.'
+        : 'json.decoder.JSONDecodeError: Expecting value:\nline 1 column 1 (char 0)\n\nApplication crashed. User sees a traceback.';
+      outEl.appendChild(d);
+      if(!reduce) gsap.fromTo(d, {x:0}, {x:-4, duration:.06, repeat:5, yoyo:true});
+    }
+  }
+
+  function record(kind){
+    results.push(kind);
+    const d = document.createElement('div');
+    d.className = 'dot ' + (kind === 'crash' ? 'no' : 'ok');
+    runsEl.appendChild(d);
+    if(!reduce) gsap.from(d, {scale:0, duration:.25, ease:'back.out(3)'});
+    const good = results.filter(function(r){ return r !== 'crash'; }).length;
+    const pct = Math.round(good / results.length * 100);
+    rateEl.textContent = pct + '%';
+    rateEl.className = pct >= 95 ? 'good' : (pct >= 70 ? 'mid' : 'poor');
+    rateText.textContent = good + ' of ' + results.length + ' calls left the application running.';
+  }
+
+  document.getElementById('one').addEventListener('click', function(){
+    const shape = pickShape();
+    const kind = evaluate(shape);
+    render(shape, kind);
+    record(kind);
+    showVerdict();
+  });
+
+  document.getElementById('twenty').addEventListener('click', function(){
+    let i = 0;
+    const gap = reduce ? 0 : 110;
+    const t = setInterval(function(){
+      const shape = pickShape();
+      const kind = evaluate(shape);
+      if(i === 19) render(shape, kind);
+      record(kind);
+      i++;
+      if(i >= 20){ clearInterval(t); showVerdict(); }
+    }, gap);
+  });
+
+  document.getElementById('reset').addEventListener('click', function(){
+    results.length = 0;
+    runsEl.innerHTML = '';
+    rateEl.textContent = '\u2014'; rateEl.className = '';
+    rateText.textContent = 'Each square is one call. Green means your application got usable data.';
+    outEl.innerHTML = '<p class="none">Nothing yet.</p>';
+    rawEl.textContent = 'Choose a prompt and a parser, then run.';
+    verdict.classList.remove('show');
+  });
+
+  function showVerdict(){
+    const good = results.filter(function(r){ return r !== 'crash'; }).length;
+    const pct = Math.round(good / results.length * 100);
+    let body = '';
+
+    if(parser.id === 'naive' && prompt.id !== 'strict'){
+      body = '<p>A direct <code>json.loads()</code> works only when the model returns bare JSON and nothing else. It fails on a code fence, on a friendly opening sentence, and on any answer written in prose. Each of those failures is an unhandled exception, which means a traceback in front of your user.</p>' +
+             '<p>This is the version most students write first, and it passes every test they run by hand, because a model that behaves once tends to behave the next few times too. It breaks in the demo.</p>';
+    } else if(parser.id === 'guard' && prompt.id === 'strict'){
+      body = '<p>This is the combination to build. The prompt states the shape, the allowed values, and everything the model must not include. The parser then assumes the prompt will be ignored occasionally anyway, extracts the array, validates that the keys are present, and falls back to a message rather than a crash.</p>' +
+             '<p>The reliability figure is ' + pct + '%. The calls that did not produce cards still left the application running, which is the difference between a rough moment and a broken demo.</p>' +
+             '<p>Notice that a precise prompt did not make the parser unnecessary. It reduced how often the parser has to save you.</p>';
+    } else if(parser.id === 'guard'){
+      body = '<p>The parser is doing the heavy lifting. Nothing crashed, because every failure path ends in a message rather than an exception, but look at how many calls produced no cards at all.</p>' +
+             '<p>A vague prompt means the model frequently answers in prose, and no parser can extract JSON from a paragraph that contains none. Tighten the prompt and run again. Defensive parsing prevents crashes; a precise prompt prevents the empty results.</p>';
+    } else if(prompt.id === 'strict'){
+      body = '<p>A precise prompt got you to ' + pct + '%, which looks good until you consider what the remaining calls did. Every one of them was an unhandled exception in front of a user.</p>' +
+             '<p>A model is not a function. The same prompt can produce a different shape on any call, and the day it wraps the answer in a fence is the day your application breaks. A prompt reduces the odds. Only the parser removes the crash.</p>';
+    } else {
+      body = '<p>Reliability is ' + pct + '%, and the failures are unhandled exceptions rather than handled ones. Your parser covers some shapes but not all of them, and the shapes it misses reach the user as a traceback.</p>' +
+             '<p>Work the two axes together. Make the prompt specify the shape and forbid the extras, then make the parser assume the prompt was ignored anyway.</p>';
+    }
+
+    verdictBody.innerHTML = body;
+    verdict.classList.add('show');
+    if(!reduce) gsap.from(verdict, {opacity:0, y:10, duration:.4});
+  }
+
+  if(!reduce){
+    gsap.from('header', {opacity:0, y:-10, duration:.5});
+    gsap.from('.pick', {opacity:0, y:10, duration:.35, stagger:.04, delay:.12});
+    gsap.from('.panel', {opacity:0, y:14, duration:.45, stagger:.09, delay:.25});
+  }
+})();
+</script>
+</body>
+</html>
