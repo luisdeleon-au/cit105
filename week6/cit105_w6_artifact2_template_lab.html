@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Template Lab | CIT 105 Module 6</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Questrial&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+  :root{
+    --ink:#171310; --paper:#F7F5F2; --au-maroon:#990000; --au-dark:#800000;
+    --au-red:#C00000; --rule:#DED8D2; --muted:#7A716B;
+    --ok:#2E6B4F; --bad:#A32020; --warn:#B26A00; --blue:#1F5C8B;
+    --display:'Questrial','Century Gothic',system-ui,sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--display);
+    line-height:1.55;padding:28px 20px 56px}
+  .wrap{max-width:1180px;margin:0 auto}
+  header{border-bottom:3px solid var(--au-maroon);padding-bottom:18px;margin-bottom:18px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--au-red);margin:0 0 8px}
+  h1{font-size:clamp(27px,3.8vw,42px);margin:0 0 10px;letter-spacing:-.02em}
+  .lede{margin:0;max-width:68ch;color:#40382F;font-size:16px}
+
+  .prog{display:flex;align-items:center;gap:13px;margin:18px 0 4px}
+  .track{flex:1;height:7px;background:#EDE8E3;border-radius:2px;overflow:hidden}
+  .fill{height:100%;width:0%;background:var(--au-maroon)}
+  .pos{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);white-space:nowrap}
+  .pos b{color:var(--au-maroon)}
+
+  .cols{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;margin-top:14px;align-items:start}
+  .panel{background:#fff;border:1px solid var(--rule);border-top:4px solid var(--rule);
+    border-radius:2px;padding:16px}
+  .panel.task{border-top-color:var(--au-red)}
+  .panel.out{border-top-color:var(--ok)}
+  .panel h2{font-size:18px;margin:0 0 2px}
+  .panel .sub{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 13px}
+
+  .ctx{background:var(--ink);color:#E8E2DA;font-family:var(--mono);font-size:11px;
+    padding:11px 13px;border-radius:2px;white-space:pre;overflow:auto;margin-bottom:14px;line-height:1.55}
+  .ctx .k{color:#9FC8E8} .ctx .s{color:#B9D6A8} .ctx .c{color:#7E756E} .ctx .x{color:#FF9B9B}
+
+  .goal{font-size:15.5px;margin:0 0 12px}
+  .goal b{color:var(--au-red)}
+
+  .opts{display:flex;flex-direction:column;gap:8px}
+  .opt{text-align:left;font-family:var(--mono);font-size:11.5px;background:var(--paper);
+    border:1px solid var(--rule);border-radius:2px;padding:10px 12px;cursor:pointer;
+    white-space:pre-wrap;line-height:1.5;transition:border-color .15s,background .15s}
+  .opt:hover:not(:disabled){border-color:var(--au-maroon)}
+  .opt:focus-visible{outline:3px solid var(--au-red);outline-offset:2px}
+  .opt.right{border-color:var(--ok);background:#EAF4EE}
+  .opt.wrong{border-color:var(--bad);background:#FBECEC}
+  .opt:disabled{cursor:default}
+
+  .fb{margin-top:13px;border-left:4px solid var(--au-maroon);background:#FBF9F7;padding:12px 15px;display:none}
+  .fb.show{display:block}
+  .fb .v{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin:0 0 6px}
+  .fb .v.y{color:var(--ok)} .fb .v.n{color:var(--bad)}
+  .fb p{margin:0;font-size:14.5px}
+  .fb code{font-family:var(--mono);background:#EDE8E3;padding:1px 5px;font-size:12.5px}
+
+  .browser{border:1px solid var(--rule);border-radius:2px;background:#FBFAF9;overflow:hidden}
+  .chrome{display:flex;align-items:center;gap:6px;background:#EFEAE5;padding:7px 10px;
+    border-bottom:1px solid var(--rule)}
+  .chrome i{width:8px;height:8px;border-radius:50%;background:#D4CCC5;display:inline-block}
+  .chrome .url{font-family:var(--mono);font-size:10.5px;color:var(--muted);background:#fff;
+    border:1px solid var(--rule);border-radius:2px;padding:3px 8px;margin-left:6px;flex:1}
+  .screen{padding:14px;min-height:300px}
+  .bhead{border-bottom:2px solid var(--au-maroon);padding-bottom:7px;margin-bottom:12px}
+  .bhead h4{margin:0;font-size:16px}
+  .bhead span{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted)}
+  .board{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+  .col{background:#fff;border:1px solid var(--rule);border-radius:2px;padding:9px;min-height:120px}
+  .col h5{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+    margin:0 0 8px;color:var(--muted);border-bottom:1px solid var(--rule);padding-bottom:5px}
+  .kc{font-size:12px;background:var(--paper);border:1px solid var(--rule);border-left:3px solid var(--muted);
+    padding:6px 8px;margin-bottom:5px;border-radius:2px;line-height:1.35}
+  .kc.high{border-left-color:var(--bad)}
+  .kc.medium{border-left-color:var(--warn)}
+  .kc.low{border-left-color:var(--ok)}
+  .kc .p{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--muted);margin-top:3px}
+  .col .none{font-size:11.5px;color:#B3AAA3;font-style:italic}
+  .broken{background:#FBECEC;border:1px dashed var(--bad);color:var(--bad);font-family:var(--mono);
+    font-size:11.5px;padding:11px;white-space:pre-wrap;line-height:1.5}
+  .xss{background:#FBECEC;border:2px solid var(--bad);padding:9px;font-size:12.5px;color:var(--bad)}
+
+  .nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  button.act{font-family:var(--mono);font-size:12.5px;padding:10px 15px;cursor:pointer;
+    border:1px solid var(--ink);background:#fff;color:var(--ink);border-radius:2px;
+    transition:background .15s,color .15s,transform .1s}
+  button.act:hover:not(:disabled){background:var(--ink);color:#fff}
+  button.act:active:not(:disabled){transform:translateY(1px)}
+  button.act:focus-visible{outline:3px solid var(--au-red);outline-offset:2px}
+  button.act:disabled{opacity:.32;cursor:not-allowed}
+  button.act.primary{background:var(--au-maroon);border-color:var(--au-maroon);color:#fff}
+  button.act.primary:hover:not(:disabled){background:var(--au-dark);border-color:var(--au-dark)}
+
+  .done{display:none;margin-top:18px;background:#fff;border:1px solid var(--rule);
+    border-left:4px solid var(--au-maroon);padding:18px 20px;border-radius:2px}
+  .done.show{display:block}
+  .done h3{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--au-red);margin:0 0 8px}
+  .done p{margin:0 0 9px;font-size:15px;max-width:82ch}
+  .done p:last-child{margin-bottom:0}
+  .done code{font-family:var(--mono);background:var(--paper);padding:1px 5px;font-size:13px}
+
+  @media (max-width:900px){ .cols{grid-template-columns:1fr} }
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">CIT 105 Programming Practice &middot; Module 6</p>
+    <h1>Template Lab</h1>
+    <p class="lede">Flask hands your data to a template and the template turns it into HTML. Six tasks below, each with three candidate Jinja snippets and only one correct answer. Pick right and the board renders. Pick wrong and you see exactly what the browser would have shown your user.</p>
+  </header>
+
+  <div class="prog">
+    <div class="track"><div class="fill" id="fill"></div></div>
+    <div class="pos">Task <b id="tn">1</b> of <b id="tt">6</b> &nbsp;&middot;&nbsp; correct <b id="sc">0</b></div>
+  </div>
+
+  <div class="cols">
+
+    <section class="panel task">
+      <h2 id="ttitle">Task</h2>
+      <p class="sub">board.html</p>
+      <div class="ctx" id="ctx"></div>
+      <p class="goal" id="goal"></p>
+      <div class="opts" id="opts"></div>
+      <div class="fb" id="fb"><p class="v" id="v"></p><p id="fbtext"></p></div>
+      <div class="nav">
+        <button class="act primary" id="next" disabled>Next task</button>
+        <button class="act" id="restart" style="display:none">Start over</button>
+      </div>
+    </section>
+
+    <section class="panel out">
+      <h2>Rendered result</h2>
+      <p class="sub">what the browser receives</p>
+      <div class="browser">
+        <div class="chrome"><i></i><i></i><i></i><span class="url">localhost:5000/</span></div>
+        <div class="screen" id="screen">
+          <p style="color:#B3AAA3;font-style:italic;font-size:13px">Choose a snippet to render the template.</p>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="done" id="done">
+    <h3>Wrapping up</h3>
+    <div id="done-body"></div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const CTX_BASE =
+    '<span class="c"># passed from your route:</span>\n' +
+    'render_template(<span class="s">"board.html"</span>,\n' +
+    '  <span class="k">columns</span>=[<span class="s">"Backlog"</span>, <span class="s">"In progress"</span>, <span class="s">"Done"</span>],\n' +
+    '  <span class="k">cards</span>=[\n' +
+    '    {<span class="s">"title"</span>: <span class="s">"Design the schema"</span>, <span class="s">"col"</span>: <span class="s">"Backlog"</span>, <span class="s">"priority"</span>: <span class="s">"high"</span>},\n' +
+    '    {<span class="s">"title"</span>: <span class="s">"Build the form"</span>, <span class="s">"col"</span>: <span class="s">"Backlog"</span>, <span class="s">"priority"</span>: <span class="s">"medium"</span>},\n' +
+    '    {<span class="s">"title"</span>: <span class="s">"Set up the repo"</span>, <span class="s">"col"</span>: <span class="s">"Done"</span>, <span class="s">"priority"</span>: <span class="s">"low"</span>}\n' +
+    '  ])';
+
+  const CTX_XSS = CTX_BASE.replace(
+    '{<span class="s">"title"</span>: <span class="s">"Set up the repo"</span>, <span class="s">"col"</span>: <span class="s">"Done"</span>, <span class="s">"priority"</span>: <span class="s">"low"</span>}',
+    '{<span class="s">"title"</span>: <span class="x">"&lt;script&gt;steal()&lt;/script&gt;"</span>, <span class="s">"col"</span>: <span class="s">"Done"</span>, <span class="s">"priority"</span>: <span class="s">"low"</span>}');
+
+  const TASKS = [
+    { title:'Task 1: loop over the columns',
+      ctx:CTX_BASE,
+      goal:'Render one board column for each name in <b>columns</b>. Only the loop matters here, the card list comes next.',
+      opts:[
+        '{% for col in columns %}\n  <div class="col"><h5>{{ col }}</h5></div>\n{% endfor %}',
+        'for col in columns:\n  <div class="col"><h5>{{ col }}</h5></div>',
+        '{{ for col in columns }}\n  <div class="col"><h5>{{ col }}</h5></div>\n{{ endfor }}'],
+      a:0,
+      render:['cols'],
+      fb:['Jinja uses <code>{% %}</code> for logic and <code>{{ }}</code> for output. Statements like <code>for</code> and <code>if</code> always go in the percent form, and every block needs its matching <code>endfor</code> or <code>endif</code>.',
+          'That is Python syntax pasted into HTML. A template is not a Python file; the indentation means nothing here and Jinja will render that line as literal text.',
+          'The double-brace form outputs a value. It cannot open a block, so Jinja raises a template syntax error before anything reaches the browser.'] },
+
+    { title:'Task 2: put each card in the right column',
+      ctx:CTX_BASE,
+      goal:'Inside each column, show only the cards whose <b>col</b> matches that column name.',
+      opts:[
+        '{% for c in cards %}\n  <div class="kc">{{ c.title }}</div>\n{% endfor %}',
+        '{% for c in cards if c.col == col %}\n  <div class="kc">{{ c.title }}</div>\n{% endfor %}',
+        '{% for c in cards %}\n  {% if c.col = col %}<div class="kc">{{ c.title }}</div>{% endif %}\n{% endfor %}'],
+      a:1,
+      render:['cols','cards'],
+      fb:['This loops over every card in every column, so all three cards appear three times. The loop needs a condition.',
+          'Jinja allows an inline filter on a for loop, which reads cleanly and does the job. Writing it as a nested <code>{% if %}</code> is equally valid, as long as the comparison uses <code>==</code>.',
+          'A single <code>=</code> is assignment, not comparison. Jinja raises a syntax error, and this is the same mistake beginners make in Python itself.'] },
+
+    { title:'Task 3: handle an empty column',
+      ctx:CTX_BASE,
+      goal:'A column with no cards currently renders as blank space. Show the text "nothing here" instead.',
+      opts:[
+        '{% for c in cards if c.col == col %}\n  <div class="kc">{{ c.title }}</div>\n{% else %}\n  <p class="none">nothing here</p>\n{% endfor %}',
+        '{% for c in cards if c.col == col %}\n  <div class="kc">{{ c.title }}</div>\n{% endfor %}\n{% if cards is empty %}<p>nothing here</p>{% endif %}',
+        '{% try %}\n  {% for c in cards if c.col == col %}...{% endfor %}\n{% except %}\n  <p>nothing here</p>\n{% endtry %}'],
+      a:0,
+      render:['cols','cards','empty'],
+      fb:['Jinja loops take an <code>{% else %}</code> that runs when the loop produced no iterations. It is exactly right for an empty state and saves you a separate length check.',
+          '<code>is empty</code> is not a Jinja test, and even if it were, it checks the whole card list rather than this column. Every column would show the message or none would.',
+          'Templates have no try and except. Error handling belongs in your Python code, not in the presentation layer.'] },
+
+    { title:'Task 4: show priority, with a fallback',
+      ctx:CTX_BASE,
+      goal:'Display each card priority in uppercase. Some cards in the real data have no priority key at all, and those should read UNSET rather than crashing the page.',
+      opts:[
+        '<span class="p">{{ c.priority.upper() }}</span>',
+        '<span class="p">{{ c.priority | default("unset") | upper }}</span>',
+        '<span class="p">{{ upper(default(c.priority, "unset")) }}</span>'],
+      a:1,
+      render:['cols','cards','empty','prio'],
+      fb:['This works until a card is missing the key, and then the whole page fails to render. Jinja is more forgiving than Python here, but calling a method on a missing value still breaks.',
+          'Filters chain left to right with the pipe character. <code>default</code> supplies a value when the key is missing or undefined, and <code>upper</code> then formats whatever came through. This is the idiomatic Jinja approach.',
+          'Filters are not called like functions in Jinja. That syntax raises an error.'] },
+
+    { title:'Task 5: stop repeating the page shell',
+      ctx:CTX_BASE,
+      goal:'Every page in your app needs the same header and navigation. Pull the shell into base.html and have board.html supply only its own content.',
+      opts:[
+        '{% include "base.html" %}\n<div class="board">...</div>',
+        '{% import "base.html" %}\n{% block content %}<div class="board">...</div>{% endblock %}',
+        '{% extends "base.html" %}\n{% block content %}\n  <div class="board">...</div>\n{% endblock %}'],
+      a:2,
+      render:['cols','cards','empty','prio','base'],
+      fb:['<code>include</code> pastes another template in at that point. Useful for a card partial or a footer, but it does not give you a parent page with a hole in it.',
+          '<code>import</code> is for reusing macros, which are like template functions. It does not establish a parent and child relationship.',
+          '<code>extends</code> makes this template a child of base.html, and each <code>{% block %}</code> fills a matching hole the parent left. Change the header once in base.html and every page updates.'] },
+
+    { title:'Task 6: a card title containing HTML',
+      ctx:CTX_XSS,
+      goal:'A user has created a card titled <b>&lt;script&gt;steal()&lt;/script&gt;</b>. Decide how the template outputs it.',
+      opts:[
+        '<div class="kc">{{ c.title }}</div>',
+        '<div class="kc">{{ c.title | safe }}</div>',
+        '<div class="kc">{{ c.title | raw }}</div>'],
+      a:0,
+      render:['cols','cards','empty','prio','base','xss'],
+      fb:['Jinja escapes output by default, so the angle brackets become harmless text and the browser displays the title exactly as typed. You get this protection for free, which is the point.',
+          'The <code>safe</code> filter switches escaping off and tells the browser to treat the value as real HTML. On user-supplied content that is a cross-site scripting hole. Only use it on markup your own code generated.',
+          '<code>raw</code> is a Jinja block for skipping template parsing, not an output filter. This is not valid here.'] }
+  ];
+
+  let i = 0, score = 0, answered = false;
+  const state = {};
+
+  const ctxEl = document.getElementById('ctx');
+  const goalEl = document.getElementById('goal');
+  const optsEl = document.getElementById('opts');
+  const screenEl = document.getElementById('screen');
+  const fbEl = document.getElementById('fb');
+  const vEl = document.getElementById('v');
+  const fbText = document.getElementById('fbtext');
+  const nextBtn = document.getElementById('next');
+  const restartBtn = document.getElementById('restart');
+  const fill = document.getElementById('fill');
+  const done = document.getElementById('done');
+  const doneBody = document.getElementById('done-body');
+
+  document.getElementById('tt').textContent = TASKS.length;
+
+  const COLUMNS = ['Backlog','In progress','Done'];
+  function cardData(withXss){
+    return [
+      {title:'Design the schema', col:'Backlog', priority:'high'},
+      {title:'Build the form', col:'Backlog', priority:'medium'},
+      {title: withXss ? '<script>steal()</script>' : 'Set up the repo', col:'Done', priority: withXss ? undefined : 'low'}
+    ];
+  }
+
+  function draw(){
+    const t = TASKS[i];
+    answered = false; nextBtn.disabled = true;
+    document.getElementById('tn').textContent = i + 1;
+    if(reduce) fill.style.width = (i / TASKS.length * 100) + '%';
+    else gsap.to(fill, {width:(i / TASKS.length * 100) + '%', duration:.4});
+
+    document.getElementById('ttitle').textContent = t.title;
+    ctxEl.innerHTML = t.ctx;
+    goalEl.innerHTML = t.goal;
+    fbEl.classList.remove('show');
+    optsEl.innerHTML = '';
+    t.opts.forEach(function(o, k){
+      const b = document.createElement('button');
+      b.className = 'opt';
+      b.textContent = o;
+      b.addEventListener('click', function(){ answer(k, b); });
+      optsEl.appendChild(b);
+    });
+    if(!reduce) gsap.from('.opt', {opacity:0, x:-8, duration:.3, stagger:.06});
+  }
+
+  function answer(k, el){
+    if(answered) return;
+    answered = true;
+    const t = TASKS[i];
+    const right = k === t.a;
+    if(right){ score++; document.getElementById('sc').textContent = score; }
+
+    Array.prototype.forEach.call(optsEl.children, function(b, n){
+      b.disabled = true;
+      if(n === t.a) b.classList.add('right');
+      else if(n === k) b.classList.add('wrong');
+    });
+
+    vEl.className = 'v ' + (right ? 'y' : 'n');
+    vEl.textContent = right ? 'Renders correctly' : 'Broken output';
+    fbText.innerHTML = t.fb[k];
+    fbEl.classList.add('show');
+    if(!reduce) gsap.from(fbEl, {opacity:0, y:8, duration:.3});
+
+    if(right){ t.render.forEach(function(f){ state[f] = true; }); renderBoard(k); }
+    else { renderBroken(i, k); }
+
+    nextBtn.disabled = false;
+    nextBtn.textContent = (i === TASKS.length - 1) ? 'See the summary' : 'Next task';
+  }
+
+  function renderBoard(){
+    const withXss = !!state.xss;
+    const cards = cardData(withXss);
+    let html = '';
+    if(state.base){
+      html += '<div class="bhead"><span>base.html</span><h4>Project Board</h4></div>';
+    } else {
+      html += '<h4 style="margin:0 0 12px">Project Board</h4>';
+    }
+    html += '<div class="board">';
+    COLUMNS.forEach(function(col){
+      html += '<div class="col"><h5>' + col + '</h5>';
+      if(state.cards){
+        const mine = cards.filter(function(c){ return c.col === col; });
+        if(!mine.length && state.empty){
+          html += '<p class="none">nothing here</p>';
+        }
+        mine.forEach(function(c){
+          const safeTitle = c.title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+          html += '<div class="kc ' + (c.priority || '') + '">' + safeTitle;
+          if(state.prio){
+            const p = c.priority ? c.priority.toUpperCase() : 'UNSET';
+            html += '<span class="p">' + p + '</span>';
+          }
+          html += '</div>';
+        });
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+    screenEl.innerHTML = html;
+    if(!reduce){
+      gsap.from('#screen .col', {opacity:0, y:10, duration:.35, stagger:.07});
+      gsap.from('#screen .kc', {opacity:0, x:8, duration:.3, stagger:.05, delay:.15});
+    }
+  }
+
+  function renderBroken(taskIndex, choice){
+    let out = '';
+    if(taskIndex === 0){
+      out = choice === 1
+        ? 'for col in columns:\n  Backlog In progress Done\n\n(Jinja printed your Python as plain text)'
+        : 'jinja2.exceptions.TemplateSyntaxError:\nEncountered unknown tag \'for\'.\n\nThe page never rendered.';
+      screenEl.innerHTML = '<div class="broken">' + out + '</div>';
+    } else if(taskIndex === 1){
+      if(choice === 0){
+        screenEl.innerHTML = '<h4 style="margin:0 0 12px">Project Board</h4><div class="board">' +
+          COLUMNS.map(function(col){
+            return '<div class="col"><h5>' + col + '</h5>' +
+              '<div class="kc">Design the schema</div><div class="kc">Build the form</div>' +
+              '<div class="kc">Set up the repo</div></div>';
+          }).join('') + '</div><p style="color:var(--bad);font-size:13px;margin:10px 0 0">' +
+          'Every card in every column. The loop had no condition.</p>';
+      } else {
+        screenEl.innerHTML = '<div class="broken">jinja2.exceptions.TemplateSyntaxError:\n' +
+          'expected token \'end of statement block\', got \'=\'\n\nThe page never rendered.</div>';
+      }
+    } else if(taskIndex === 2){
+      screenEl.innerHTML = choice === 1
+        ? '<div class="broken">jinja2.exceptions.TemplateAssertionError:\nNo test named \'empty\'.\n\nThe page never rendered.</div>'
+        : '<div class="broken">jinja2.exceptions.TemplateSyntaxError:\nEncountered unknown tag \'try\'.\n\nThe page never rendered.</div>';
+    } else if(taskIndex === 3){
+      screenEl.innerHTML = choice === 0
+        ? '<div class="broken">jinja2.exceptions.UndefinedError:\n\'None\' has no attribute \'upper\'\n\nOne card was missing its priority key\nand the whole page failed.</div>'
+        : '<div class="broken">jinja2.exceptions.TemplateSyntaxError:\nexpected token \')\', got \'string\'\n\nFilters are not called like functions.</div>';
+    } else if(taskIndex === 4){
+      screenEl.innerHTML = choice === 0
+        ? '<div class="broken">Page rendered, but the header appears twice\nand your board content sits below the\nentire base page instead of inside it.\n\ninclude pastes, it does not inherit.</div>'
+        : '<div class="broken">jinja2.exceptions.TemplateSyntaxError:\nEncountered unknown tag \'import\' used this way.\n\nblock content never found a parent to fill.</div>';
+    } else {
+      screenEl.innerHTML = '<h4 style="margin:0 0 12px">Project Board</h4>' +
+        '<div class="xss">The browser executed the card title as real HTML.<br><br>' +
+        'A script tag stored by one user just ran in every other user\'s browser. ' +
+        'On a real board that reads their session cookie and sends it somewhere.</div>';
+      if(!reduce) gsap.fromTo('.xss', {x:0}, {x:-4, duration:.06, repeat:5, yoyo:true});
+    }
+    if(!reduce) gsap.from('#screen > *', {opacity:0, duration:.3});
+  }
+
+  nextBtn.addEventListener('click', function(){
+    if(i < TASKS.length - 1){ i++; draw(); }
+    else { finish(); }
+  });
+
+  function finish(){
+    if(reduce) fill.style.width = '100%';
+    else gsap.to(fill, {width:'100%', duration:.4});
+    nextBtn.style.display = 'none';
+    restartBtn.style.display = 'inline-block';
+    doneBody.innerHTML =
+      '<p>You scored ' + score + ' of ' + TASKS.length + '. The pattern across all six tasks: a template does presentation and nothing else. It loops, it chooses, it formats. It does not calculate, it does not handle errors, and it does not talk to a database.</p>' +
+      '<p>Two of these will bite you directly this week. An <code>{% else %}</code> on a loop is how your empty Backlog column stops looking like a rendering bug. And the escaping default is why a card titled with a script tag is harmless in your board, right up until somebody adds <code>| safe</code> to make some formatting work.</p>' +
+      '<p>Never apply <code>safe</code> to anything a user typed. If you need HTML in a card description, sanitize it in Python first and be able to explain what your sanitizer allows.</p>';
+    done.classList.add('show');
+    if(!reduce) gsap.from(done, {opacity:0, y:12, duration:.45});
+  }
+
+  restartBtn.addEventListener('click', function(){
+    i = 0; score = 0;
+    Object.keys(state).forEach(function(k){ delete state[k]; });
+    document.getElementById('sc').textContent = '0';
+    nextBtn.style.display = 'inline-block';
+    restartBtn.style.display = 'none';
+    done.classList.remove('show');
+    screenEl.innerHTML = '<p style="color:#B3AAA3;font-style:italic;font-size:13px">Choose a snippet to render the template.</p>';
+    draw();
+  });
+
+  draw();
+  if(!reduce){
+    gsap.from('header', {opacity:0, y:-10, duration:.5});
+    gsap.from('.panel', {opacity:0, y:14, duration:.45, stagger:.1, delay:.15});
+  }
+})();
+</script>
+</body>
+</html>

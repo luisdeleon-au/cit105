@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two Execution Models | CIT 105 Module 6</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Questrial&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+  :root{
+    --ink:#171310; --paper:#F7F5F2; --au-maroon:#990000; --au-dark:#800000;
+    --au-red:#C00000; --rule:#DED8D2; --muted:#7A716B;
+    --ok:#2E6B4F; --bad:#A32020; --warn:#B26A00; --blue:#1F5C8B;
+    --display:'Questrial','Century Gothic',system-ui,sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--display);
+    line-height:1.55;padding:28px 20px 56px}
+  .wrap{max-width:1180px;margin:0 auto}
+  header{border-bottom:3px solid var(--au-maroon);padding-bottom:18px;margin-bottom:20px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--au-red);margin:0 0 8px}
+  h1{font-size:clamp(27px,3.8vw,42px);margin:0 0 10px;letter-spacing:-.02em}
+  .lede{margin:0;max-width:68ch;color:#40382F;font-size:16px}
+
+  .modes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
+  .mode{text-align:left;font-family:var(--display);font-size:15px;padding:13px 15px;background:#fff;
+    border:1px solid var(--rule);border-radius:2px;cursor:pointer;line-height:1.4;
+    transition:border-color .15s,box-shadow .15s}
+  .mode:hover{border-color:var(--au-maroon)}
+  .mode[aria-pressed="true"]{border-color:var(--au-maroon);box-shadow:inset 0 0 0 2px var(--au-maroon)}
+  .mode .tag{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+  .mode:focus-visible{outline:3px solid var(--au-red);outline-offset:2px}
+
+  .bugbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px;
+    background:#fff;border:1px solid var(--rule);border-left:4px solid var(--warn);
+    padding:11px 14px;border-radius:2px}
+  .bugbar label{font-size:14px;display:flex;gap:8px;align-items:center;cursor:pointer}
+  .bugbar input{accent-color:var(--au-maroon);width:15px;height:15px}
+  .bugbar .n{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-left:auto}
+
+  .stage{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;margin-top:16px;align-items:start}
+  .panel{background:#fff;border:1px solid var(--rule);border-top:4px solid var(--rule);
+    border-radius:2px;padding:15px}
+  .panel.exec{border-top-color:var(--blue)}
+  .panel.ui{border-top-color:var(--ok)}
+  .panel h2{font-size:17px;margin:0 0 2px}
+  .panel .sub{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 12px}
+
+  .code{background:var(--ink);border-radius:2px;padding:13px 0;font-family:var(--mono);
+    font-size:12px;color:#E8E2DA;overflow:auto;min-height:250px}
+  .code .ln{padding:3px 16px 3px 42px;white-space:pre;position:relative;transition:background .18s}
+  .code .ln .num{position:absolute;left:10px;color:#6E655E;width:20px;text-align:right}
+  .code .ln.on{background:#3A2E22}
+  .code .ln.on .num{color:#FFD79B}
+  .code .ln.done{color:#8E857D}
+  .code .kw{color:#FF9F9F} .code .str{color:#B9D6A8} .code .cmt{color:#7E756E}
+  .code .fn{color:#E8C88E} .code .warn{color:#FFB4B4}
+
+  .flow{display:flex;flex-direction:column;gap:9px;min-height:250px}
+  .hop{display:grid;grid-template-columns:74px 1fr;gap:11px;align-items:start;
+    font-family:var(--mono);font-size:11.5px;opacity:.28;transition:opacity .25s}
+  .hop.on{opacity:1}
+  .hop .who{color:var(--muted);text-align:right;padding-top:6px;font-size:10px;
+    letter-spacing:.08em;text-transform:uppercase}
+  .hop .msg{background:var(--paper);border:1px solid var(--rule);border-left:3px solid var(--blue);
+    padding:7px 10px;border-radius:2px}
+  .hop.server .msg{border-left-color:var(--ok)}
+  .hop.redir .msg{border-left-color:var(--warn)}
+  .hop.bad .msg{border-left-color:var(--bad);background:#FBECEC;color:var(--bad)}
+  .hop .msg small{display:block;font-family:var(--display);font-size:12px;color:var(--muted);margin-top:3px}
+
+  .browser{border:1px solid var(--rule);border-radius:2px;background:#FBFAF9;overflow:hidden}
+  .chrome{display:flex;align-items:center;gap:6px;background:#EFEAE5;padding:7px 10px;
+    border-bottom:1px solid var(--rule)}
+  .chrome i{width:8px;height:8px;border-radius:50%;background:#D4CCC5;display:inline-block}
+  .chrome .url{font-family:var(--mono);font-size:10.5px;color:var(--muted);background:#fff;
+    border:1px solid var(--rule);border-radius:2px;padding:3px 8px;margin-left:6px;flex:1}
+  .screen{padding:13px;min-height:190px}
+  .screen h4{font-size:15px;margin:0 0 10px}
+  .cardlist{display:flex;flex-direction:column;gap:5px;margin-bottom:11px;min-height:70px}
+  .kcard{font-family:var(--mono);font-size:11.5px;background:#fff;border:1px solid var(--rule);
+    border-left:3px solid var(--au-maroon);padding:6px 9px;border-radius:2px}
+  .kcard.dupe{border-left-color:var(--bad);background:#FBECEC}
+  .screen .empty{font-size:12.5px;color:#B3AAA3;font-style:italic}
+  .fakeform{display:flex;gap:6px}
+  .fakeform .fi{flex:1;font-family:var(--mono);font-size:11px;background:#fff;
+    border:1px solid var(--rule);border-radius:2px;padding:6px 8px;color:var(--muted)}
+  .fakeform .fb{font-family:var(--mono);font-size:11px;background:var(--au-maroon);color:#fff;
+    border-radius:2px;padding:6px 11px}
+
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 0}
+  button{font-family:var(--mono);font-size:12.5px;padding:10px 14px;cursor:pointer;
+    border:1px solid var(--ink);background:#fff;color:var(--ink);border-radius:2px;
+    transition:background .15s,color .15s,transform .1s}
+  button:hover:not(:disabled){background:var(--ink);color:#fff}
+  button:active:not(:disabled){transform:translateY(1px)}
+  button:focus-visible{outline:3px solid var(--au-red);outline-offset:2px}
+  button:disabled{opacity:.32;cursor:not-allowed}
+  button.primary{background:var(--au-maroon);border-color:var(--au-maroon);color:#fff}
+  button.primary:hover:not(:disabled){background:var(--au-dark);border-color:var(--au-dark)}
+
+  .verdict{margin-top:18px;background:#fff;border:1px solid var(--rule);
+    border-left:4px solid var(--au-maroon);padding:16px 18px;border-radius:2px;min-height:70px}
+  .verdict h3{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--au-red);margin:0 0 8px}
+  .verdict p{margin:0 0 9px;font-size:15px;max-width:82ch}
+  .verdict p:last-child{margin-bottom:0}
+  .verdict code{font-family:var(--mono);background:var(--paper);padding:1px 5px;font-size:13px}
+
+  @media (max-width:900px){ .stage{grid-template-columns:1fr} .modes{grid-template-columns:1fr} }
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">CIT 105 Programming Practice &middot; Module 6</p>
+    <h1>Two Execution Models</h1>
+    <p class="lede">Same feature, same user action, two frameworks that handle it in completely different ways. In Streamlit the entire script runs again from line 1 every time anyone touches anything. In Flask nothing happens at all unless a route is asked to handle it. Add a card in each and watch what actually executes.</p>
+  </header>
+
+  <div class="modes" id="modes"></div>
+
+  <div class="bugbar">
+    <label id="buglabel"><input type="checkbox" id="bug"> <span id="bugtext">Introduce the classic beginner mistake</span></label>
+    <span class="n" id="counter">executions: 0</span>
+  </div>
+
+  <div class="stage">
+    <section class="panel exec">
+      <h2 id="exec-title">What runs</h2>
+      <p class="sub" id="exec-sub">server side</p>
+      <div id="execbox"></div>
+    </section>
+
+    <section class="panel ui">
+      <h2>What the user sees</h2>
+      <p class="sub">browser window</p>
+      <div class="browser">
+        <div class="chrome"><i></i><i></i><i></i><span class="url" id="url">localhost:8501</span></div>
+        <div class="screen">
+          <h4>Project Board</h4>
+          <div class="cardlist" id="cards"><p class="empty">no cards yet</p></div>
+          <div class="fakeform">
+            <span class="fi" id="fi">Card title...</span>
+            <span class="fb">Add card</span>
+          </div>
+        </div>
+      </div>
+      <div class="controls">
+        <button id="add" class="primary">Click "Add card"</button>
+        <button id="refresh">Refresh the page</button>
+        <button id="reset">Reset</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="verdict" id="verdict">
+    <h3>What just happened</h3>
+    <div id="verdict-body"><p>Choose a framework above, then click Add card.</p></div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const ST_GOOD = [
+    ['<span class="kw">import</span> streamlit <span class="kw">as</span> st', null],
+    ['', null],
+    ['<span class="kw">if</span> <span class="str">"cards"</span> <span class="kw">not in</span> st.session_state:', 'guard'],
+    ['    st.session_state.cards = []', 'guard'],
+    ['', null],
+    ['st.title(<span class="str">"Project Board"</span>)', null],
+    ['new = st.text_input(<span class="str">"Card title"</span>)', null],
+    ['', null],
+    ['<span class="kw">if</span> st.button(<span class="str">"Add card"</span>):', 'branch'],
+    ['    st.session_state.cards.append(new)', 'append'],
+    ['', null],
+    ['<span class="kw">for</span> c <span class="kw">in</span> st.session_state.cards:', 'render'],
+    ['    st.write(c)', 'render']
+  ];
+  const ST_BAD = [
+    ['<span class="kw">import</span> streamlit <span class="kw">as</span> st', null],
+    ['', null],
+    ['cards = []  <span class="warn"># plain variable, not session_state</span>', 'guard'],
+    ['', null],
+    ['st.title(<span class="str">"Project Board"</span>)', null],
+    ['new = st.text_input(<span class="str">"Card title"</span>)', null],
+    ['', null],
+    ['<span class="kw">if</span> st.button(<span class="str">"Add card"</span>):', 'branch'],
+    ['    cards.append(new)', 'append'],
+    ['', null],
+    ['<span class="kw">for</span> c <span class="kw">in</span> cards:', 'render'],
+    ['    st.write(c)', 'render']
+  ];
+
+  const FL_GOOD = [
+    {who:'browser', cls:'', msg:'POST /add', small:'form submitted with title=Design the schema'},
+    {who:'flask', cls:'server', msg:'@app.route("/add", methods=["POST"])', small:'only this function runs, nothing else in the file'},
+    {who:'flask', cls:'server', msg:'cards.append(request.form["title"])', small:'state changed on the server'},
+    {who:'flask', cls:'redir', msg:'return redirect(url_for("index"))', small:'302, telling the browser to go somewhere else'},
+    {who:'browser', cls:'', msg:'GET /', small:'the browser follows the redirect on its own'},
+    {who:'flask', cls:'server', msg:'@app.route("/")', small:'a different function, called fresh'},
+    {who:'flask', cls:'server', msg:'render_template("board.html", cards=cards)', small:'template turned into HTML'},
+    {who:'browser', cls:'', msg:'200 OK, HTML rendered', small:'address bar now reads / and not /add'}
+  ];
+  const FL_BAD = [
+    {who:'browser', cls:'', msg:'POST /add', small:'form submitted with title=Design the schema'},
+    {who:'flask', cls:'server', msg:'@app.route("/add", methods=["POST"])', small:'only this function runs'},
+    {who:'flask', cls:'server', msg:'cards.append(request.form["title"])', small:'state changed on the server'},
+    {who:'flask', cls:'bad', msg:'return render_template("board.html", cards=cards)', small:'no redirect, HTML returned straight from the POST'},
+    {who:'browser', cls:'bad', msg:'200 OK, but the address bar still reads /add', small:'the browser thinks the last thing it did was a POST'}
+  ];
+
+  let framework = null, bugOn = false, runs = 0;
+  const cards = [];
+
+  const modesEl = document.getElementById('modes');
+  const execBox = document.getElementById('execbox');
+  const execTitle = document.getElementById('exec-title');
+  const execSub = document.getElementById('exec-sub');
+  const cardsEl = document.getElementById('cards');
+  const urlEl = document.getElementById('url');
+  const fiEl = document.getElementById('fi');
+  const counter = document.getElementById('counter');
+  const bugCb = document.getElementById('bug');
+  const bugText = document.getElementById('bugtext');
+  const verdictBody = document.getElementById('verdict-body');
+
+  [{id:'streamlit', tag:'rerun model', label:'Streamlit: the whole script runs again on every interaction'},
+   {id:'flask', tag:'request model', label:'Flask: one route function runs, only when asked'}].forEach(function(m){
+    const b = document.createElement('button');
+    b.className = 'mode'; b.setAttribute('aria-pressed','false'); b.dataset.id = m.id;
+    b.innerHTML = '<span class="tag">' + m.tag + '</span>' + m.label;
+    b.addEventListener('click', function(){
+      framework = m.id;
+      Array.prototype.forEach.call(modesEl.children, function(c){ c.setAttribute('aria-pressed','false'); });
+      b.setAttribute('aria-pressed','true');
+      resetAll();
+    });
+    modesEl.appendChild(b);
+  });
+
+  bugCb.addEventListener('change', function(){ bugOn = bugCb.checked; resetAll(); });
+
+  function resetAll(){
+    cards.length = 0; runs = 0;
+    counter.textContent = framework === 'flask' ? 'route calls: 0' : 'script reruns: 0';
+    if(framework === 'streamlit'){
+      execTitle.textContent = 'app.py';
+      execSub.textContent = 'the entire file, every time';
+      urlEl.textContent = 'localhost:8501';
+      bugText.textContent = 'Use a plain variable instead of st.session_state';
+      drawScript(bugOn ? ST_BAD : ST_GOOD);
+    } else if(framework === 'flask'){
+      execTitle.textContent = 'Request cycle';
+      execSub.textContent = 'browser and server, one hop at a time';
+      urlEl.textContent = 'localhost:5000';
+      bugText.textContent = 'Return the template directly instead of redirecting';
+      drawFlow(bugOn ? FL_BAD : FL_GOOD);
+    }
+    drawCards();
+    fiEl.textContent = 'Card title...';
+    verdictBody.innerHTML = '<p>Click Add card to run it.</p>';
+  }
+
+  function drawScript(lines){
+    execBox.innerHTML = '<div class="code" id="code"></div>';
+    const c = document.getElementById('code');
+    lines.forEach(function(l, i){
+      const d = document.createElement('div');
+      d.className = 'ln'; d.dataset.i = i;
+      if(l[1]) d.dataset.role = l[1];
+      d.innerHTML = '<span class="num">' + (i+1) + '</span>' + (l[0] || ' ');
+      c.appendChild(d);
+    });
+  }
+
+  function drawFlow(hops){
+    execBox.innerHTML = '<div class="flow" id="flow"></div>';
+    const f = document.getElementById('flow');
+    hops.forEach(function(h, i){
+      const d = document.createElement('div');
+      d.className = 'hop ' + h.cls; d.dataset.i = i;
+      d.innerHTML = '<span class="who">' + h.who + '</span>' +
+        '<span class="msg">' + h.msg.replace(/</g,'&lt;') + '<small>' + h.small + '</small></span>';
+      f.appendChild(d);
+    });
+  }
+
+  function drawCards(dupeFrom){
+    cardsEl.innerHTML = '';
+    if(!cards.length){ cardsEl.innerHTML = '<p class="empty">no cards yet</p>'; return; }
+    cards.forEach(function(c, i){
+      const d = document.createElement('div');
+      d.className = 'kcard' + (dupeFrom !== undefined && i >= dupeFrom ? ' dupe' : '');
+      d.textContent = c;
+      cardsEl.appendChild(d);
+      if(!reduce) gsap.from(d, {opacity:0, x:10, duration:.28, delay:i*.05});
+    });
+  }
+
+  function say(html){
+    verdictBody.innerHTML = html;
+    if(!reduce) gsap.from(verdictBody, {opacity:0, y:8, duration:.35});
+  }
+
+  document.getElementById('add').addEventListener('click', function(){
+    if(!framework){ say('<p>Choose a framework above first.</p>'); return; }
+    fiEl.textContent = 'Design the schema';
+    if(framework === 'streamlit') runStreamlit();
+    else runFlask();
+  });
+
+  function runStreamlit(){
+    runs++;
+    counter.textContent = 'script reruns: ' + runs;
+    const lines = Array.prototype.slice.call(document.querySelectorAll('#code .ln'));
+    const gap = reduce ? 0 : 190;
+    lines.forEach(function(l){ l.className = 'ln'; });
+
+    lines.forEach(function(l, i){
+      setTimeout(function(){
+        lines.forEach(function(x, j){ if(j < i) x.className = 'ln done'; });
+        l.className = 'ln on';
+        const role = l.dataset.role;
+        if(role === 'guard' && bugOn){
+          cards.length = 0;
+          drawCards();
+        }
+        if(role === 'append'){
+          cards.push('Design the schema');
+        }
+        if(role === 'render' && i === lines.length - 1){
+          drawCards();
+        }
+      }, i * gap);
+    });
+
+    setTimeout(function(){
+      if(bugOn){
+        say('<p>Watch line 3. Every rerun executes <code>cards = []</code> again, which throws away everything that was there. The card was appended on this pass and rendered at the bottom, so it looks like it worked.</p>' +
+            '<p>Now click <b>Add card</b> a second time. The script reruns from line 1, the list is emptied, and the first card is gone. Streamlit reruns the whole file on every single interaction, including a checkbox or a slider being nudged.</p>' +
+            '<p>Turn the mistake off to see the fix: <code>st.session_state</code> survives reruns, and the guard makes sure the initialization only happens once.</p>');
+      } else {
+        say('<p>The entire file executed from line 1 to the end, for one button click. That is the Streamlit model, and it is why the framework is so fast to write in: there is no routing, no templates, no request objects. You write a script.</p>' +
+            '<p>The cost is that every ordinary variable is destroyed and recreated on each pass. Only <code>st.session_state</code> persists, which is why line 3 has a guard around the initialization. Without it, the list would be reset every time.</p>' +
+            '<p>Click Add card again and watch line 1 light up once more.</p>');
+      }
+    }, lines.length * gap + (reduce ? 0 : 200));
+  }
+
+  function runFlask(){
+    const hops = Array.prototype.slice.call(document.querySelectorAll('.hop'));
+    const gap = reduce ? 0 : 420;
+    hops.forEach(function(h){ h.classList.remove('on'); });
+    runs += bugOn ? 1 : 2;
+    counter.textContent = 'route calls: ' + runs;
+
+    hops.forEach(function(h, i){
+      setTimeout(function(){
+        h.classList.add('on');
+        if(!reduce) gsap.from(h, {x:-8, duration:.3});
+        const txt = h.querySelector('.msg').textContent;
+        if(txt.indexOf('cards.append') === 0){
+          cards.push('Design the schema');
+          drawCards();
+        }
+        if(txt.indexOf('GET /') === 0) urlEl.textContent = 'localhost:5000/';
+        if(txt.indexOf('POST /add') === 0) urlEl.textContent = 'localhost:5000/add';
+      }, i * gap);
+    });
+
+    setTimeout(function(){
+      if(bugOn){
+        say('<p>The card was added and the page rendered, so it looks fine. But the address bar still reads <code>/add</code>, and the browser believes the last thing it did was submit a form.</p>' +
+            '<p>Press <b>Refresh the page</b> and watch what happens.</p>');
+      } else {
+        say('<p>Two route functions ran, not one, and nothing else in your application executed at all. Compare that with the Streamlit panel, where the entire file runs top to bottom for the same click.</p>' +
+            '<p>The redirect is the piece worth noticing. The POST handler changes the data and then sends a 302, and the browser makes a separate GET request for the page. That leaves the address bar on <code>/</code>, so a refresh reloads the board rather than resubmitting the form.</p>' +
+            '<p>This is the redirect-after-post pattern. Turn the mistake on and refresh to see why it exists.</p>');
+      }
+    }, hops.length * gap + (reduce ? 0 : 200));
+  }
+
+  document.getElementById('refresh').addEventListener('click', function(){
+    if(!framework){ return; }
+    if(framework === 'streamlit'){
+      cards.length = 0; drawCards();
+      say('<p>A refresh restarts the Streamlit session entirely. Even <code>st.session_state</code> is cleared, because session state lives for the life of the browser session and a hard reload starts a new one.</p>' +
+          '<p>This is why anything that must survive a refresh belongs in a file or a database. In Module 7 you will move this board into SQLite for exactly that reason.</p>');
+      return;
+    }
+    if(bugOn){
+      const before = cards.length;
+      cards.push('Design the schema');
+      drawCards(before);
+      say('<p>The browser asked whether to resubmit the form, and resubmitting sent the same POST again. The card is now duplicated, highlighted in red.</p>' +
+          '<p>Every refresh from here adds another copy. On a real system this is a duplicate order, a double charge, or a message sent twice. The fix is one line: return a redirect from the POST handler instead of rendering the template directly.</p>' +
+          '<p>Turn the mistake off and try refreshing again.</p>');
+    } else {
+      urlEl.textContent = 'localhost:5000/';
+      drawCards();
+      say('<p>Nothing changed, which is the point. The last request the browser made was a GET for <code>/</code>, so refreshing simply asks for the board again.</p>' +
+          '<p>That is what the redirect bought you. Turn the mistake on, add a card, then refresh, and compare.</p>');
+    }
+  });
+
+  document.getElementById('reset').addEventListener('click', resetAll);
+
+  if(!reduce){
+    gsap.from('header', {opacity:0, y:-10, duration:.5});
+    gsap.from('.mode', {opacity:0, y:10, duration:.35, stagger:.07, delay:.12});
+  }
+})();
+</script>
+</body>
+</html>
