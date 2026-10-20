@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Query Console and Injection Lab | CIT 105 Module 7</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Questrial&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+  :root{
+    --ink:#171310; --paper:#F7F5F2; --au-maroon:#990000; --au-dark:#800000;
+    --au-red:#C00000; --rule:#DED8D2; --muted:#7A716B;
+    --ok:#2E6B4F; --bad:#A32020; --warn:#B26A00; --blue:#1F5C8B;
+    --display:'Questrial','Century Gothic',system-ui,sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--display);
+    line-height:1.55;padding:28px 20px 56px}
+  .wrap{max-width:1180px;margin:0 auto}
+  header{border-bottom:3px solid var(--au-maroon);padding-bottom:18px;margin-bottom:18px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--au-red);margin:0 0 8px}
+  h1{font-size:clamp(27px,3.8vw,42px);margin:0 0 10px;letter-spacing:-.02em}
+  .lede{margin:0;max-width:68ch;color:#40382F;font-size:16px}
+
+  .step{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--au-red);margin:20px 0 9px}
+
+  .modes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .mode{text-align:left;font-family:var(--display);font-size:14.5px;padding:12px 14px;background:#fff;
+    border:1px solid var(--rule);border-radius:2px;cursor:pointer;line-height:1.4;
+    transition:border-color .15s,box-shadow .15s}
+  .mode:hover{border-color:var(--au-maroon)}
+  .mode[aria-pressed="true"]{border-color:var(--au-maroon);box-shadow:inset 0 0 0 2px var(--au-maroon)}
+  .mode .tag{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .mode code{font-family:var(--mono);font-size:11px;color:var(--au-red);display:block;margin-top:5px}
+  .mode:focus-visible{outline:3px solid var(--au-red);outline-offset:2px}
+
+  .searchbar{background:#fff;border:1px solid var(--rule);border-left:4px solid var(--blue);
+    padding:14px 16px;border-radius:2px;margin-top:14px}
+  .searchbar label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  .searchbar input{width:100%;font-family:var(--mono);font-size:13.5px;padding:9px 11px;
+    border:1px solid var(--rule);border-radius:2px;background:var(--paper)}
+  .searchbar input:focus{outline:2px solid var(--blue);outline-offset:1px}
+  .payloads{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .pl{font-family:var(--mono);font-size:10.5px;padding:5px 9px;border:1px dashed var(--rule);
+    background:var(--paper);border-radius:2px;cursor:pointer;color:var(--muted)}
+  .pl:hover{border-color:var(--bad);color:var(--bad);border-style:solid}
+  .pl:focus-visible{outline:3px solid var(--au-red);outline-offset:2px}
+
+  .sqlbox{margin-top:14px;background:var(--ink);color:#E8E2DA;font-family:var(--mono);font-size:12.5px;
+    padding:15px 17px;border-radius:2px;white-space:pre-wrap;word-break:break-word;line-height:1.7}
+  .sqlbox .lab{display:block;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:#7E756E;margin-bottom:7px}
+  .sqlbox .kw{color:#FF9F9F} .sqlbox .str{color:#B9D6A8}
+  .sqlbox .inj{color:#FFD79B;background:#4A3418;padding:0 2px;border-radius:2px}
+  .sqlbox .param{color:#9FC8E8}
+  .sqlbox .sep{display:block;margin-top:11px;padding-top:9px;border-top:1px solid #332B27}
+
+  .results{margin-top:14px;background:#fff;border:1px solid var(--rule);border-top:4px solid var(--rule);
+    border-radius:2px;padding:15px}
+  .results.safe{border-top-color:var(--ok)}
+  .results.breach{border-top-color:var(--bad)}
+  .results h3{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--au-red);margin:0 0 11px}
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11.5px}
+  th{text-align:left;padding:6px 8px;background:var(--ink);color:#E8E2DA;font-weight:normal}
+  td{padding:5px 8px;border-bottom:1px solid var(--rule)}
+  tr.leaked td{background:#FBECEC;color:var(--bad)}
+  .none{font-size:13px;color:#B3AAA3;font-style:italic;margin:0}
+  .destroyed{background:#FBECEC;border:2px dashed var(--bad);color:var(--bad);font-family:var(--mono);
+    font-size:12.5px;padding:16px;white-space:pre-wrap;line-height:1.6;text-align:center}
+
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 0}
+  button.act{font-family:var(--mono);font-size:12.5px;padding:10px 14px;cursor:pointer;
+    border:1px solid var(--ink);background:#fff;color:var(--ink);border-radius:2px;
+    transition:background .15s,color .15s,transform .1s}
+  button.act:hover:not(:disabled){background:var(--ink);color:#fff}
+  button.act:active:not(:disabled){transform:translateY(1px)}
+  button.act:focus-visible{outline:3px solid var(--au-red);outline-offset:2px}
+  button.act.primary{background:var(--au-maroon);border-color:var(--au-maroon);color:#fff}
+  button.act.primary:hover{background:var(--au-dark);border-color:var(--au-dark)}
+
+  .verdict{margin-top:16px;background:#fff;border:1px solid var(--rule);
+    border-left:4px solid var(--au-maroon);padding:16px 18px;border-radius:2px;min-height:60px}
+  .verdict h3{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--au-red);margin:0 0 8px}
+  .verdict p{margin:0 0 9px;font-size:15px;max-width:82ch}
+  .verdict p:last-child{margin-bottom:0}
+  .verdict code{font-family:var(--mono);background:var(--paper);padding:1px 5px;font-size:13px}
+
+  @media (max-width:820px){ .modes{grid-template-columns:1fr} }
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">CIT 105 Programming Practice &middot; Module 7</p>
+    <h1>Query Console and Injection Lab</h1>
+    <p class="lede">Your Kanban board has a search box. Whatever the user types goes into a SQL query, and how it gets there decides whether your database survives. Type an ordinary search term first. Then try one of the payloads and watch the query change shape.</p>
+  </header>
+
+  <p class="step">Step 1. How does your code build the query?</p>
+  <div class="modes" id="modes"></div>
+
+  <div class="searchbar">
+    <label for="q">Search cards by title (this is your user's input box)</label>
+    <input id="q" value="schema" autocomplete="off" spellcheck="false">
+    <div class="payloads" id="payloads"></div>
+  </div>
+
+  <div class="sqlbox" id="sql"></div>
+
+  <div class="results" id="results">
+    <h3 id="rtitle">Results</h3>
+    <div id="rbody"><p class="none">Press Run query.</p></div>
+  </div>
+
+  <div class="controls">
+    <button class="act primary" id="run">Run query</button>
+    <button class="act" id="restore">Restore the database</button>
+  </div>
+
+  <div class="verdict" id="verdict">
+    <h3>What just happened</h3>
+    <div id="verdict-body"><p>Choose how the query is built, then run a search.</p></div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const CARDS = [
+    {id:1, title:'Design the schema', priority:'high', board:'Capstone Project', owner:'aruiz@au.edu'},
+    {id:2, title:'Build the form', priority:'medium', board:'Capstone Project', owner:'aruiz@au.edu'},
+    {id:3, title:'Write the README', priority:'low', board:'Capstone Project', owner:'aruiz@au.edu'},
+    {id:4, title:'Schema review with client', priority:'high', board:'Shop Inventory', owner:'dpena@au.edu'},
+    {id:5, title:'Order the parts', priority:'medium', board:'Shop Inventory', owner:'dpena@au.edu'},
+    {id:6, title:'Salary review notes', priority:'high', board:'HR Private', owner:'admin@au.edu'}
+  ];
+  const USERS = [
+    {id:1, email:'aruiz@au.edu', password_hash:'$2b$12$K7f...9dLp'},
+    {id:2, email:'dpena@au.edu', password_hash:'$2b$12$Qm3...2xVv'},
+    {id:3, email:'admin@au.edu', password_hash:'$2b$12$Zt8...7bWq'}
+  ];
+
+  const PAYLOADS = [
+    "' OR '1'='1",
+    "'; DROP TABLE cards; --",
+    "' UNION SELECT id, email, password_hash, '', '' FROM users --"
+  ];
+
+  let mode = null, dropped = false;
+
+  const modesEl = document.getElementById('modes');
+  const qEl = document.getElementById('q');
+  const sqlEl = document.getElementById('sql');
+  const resultsEl = document.getElementById('results');
+  const rtitle = document.getElementById('rtitle');
+  const rbody = document.getElementById('rbody');
+  const verdictBody = document.getElementById('verdict-body');
+
+  [{id:'concat', tag:'string building', label:'Paste the input straight into the query text',
+    code:'sql = f"SELECT * FROM cards WHERE title LIKE \'%{term}%\'"\ncur.execute(sql)'},
+   {id:'param', tag:'parameterized', label:'Send the query and the value separately',
+    code:'sql = "SELECT * FROM cards WHERE title LIKE ?"\ncur.execute(sql, (f"%{term}%",))'}
+  ].forEach(function(m){
+    const b = document.createElement('button');
+    b.className = 'mode'; b.setAttribute('aria-pressed','false');
+    b.innerHTML = '<span class="tag">' + m.tag + '</span>' + m.label +
+      '<code>' + m.code.replace(/</g,'&lt;').replace(/\n/g,'<br>') + '</code>';
+    b.addEventListener('click', function(){
+      mode = m.id;
+      Array.prototype.forEach.call(modesEl.children, function(c){ c.setAttribute('aria-pressed','false'); });
+      b.setAttribute('aria-pressed','true');
+      drawSql();
+    });
+    modesEl.appendChild(b);
+  });
+
+  const payEl = document.getElementById('payloads');
+  payEl.innerHTML = '<span style="font-size:11px;color:var(--muted);align-self:center">try pasting:</span>';
+  PAYLOADS.forEach(function(p){
+    const b = document.createElement('button');
+    b.className = 'pl'; b.textContent = p;
+    b.addEventListener('click', function(){ qEl.value = p; drawSql(); });
+    payEl.appendChild(b);
+  });
+
+  qEl.addEventListener('input', drawSql);
+
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function drawSql(){
+    const t = qEl.value;
+    if(!mode){
+      sqlEl.innerHTML = '<span class="lab">SQL that reaches the database</span>choose a mode above';
+      return;
+    }
+    if(mode === 'concat'){
+      const injected = PAYLOADS.indexOf(t) !== -1 || t.indexOf("'") !== -1;
+      sqlEl.innerHTML = '<span class="lab">SQL that reaches the database</span>' +
+        '<span class="kw">SELECT</span> * <span class="kw">FROM</span> cards <span class="kw">WHERE</span> title <span class="kw">LIKE</span> <span class="str">\'%</span>' +
+        (injected ? '<span class="inj">' + esc(t) + '</span>' : esc(t)) +
+        '<span class="str">%\'</span>' +
+        (injected ? '<span class="sep" style="color:#FFD79B">The quote in the input closed the string early. Everything after it is now being read as SQL, not as a search term.</span>' : '');
+    } else {
+      sqlEl.innerHTML = '<span class="lab">SQL that reaches the database</span>' +
+        '<span class="kw">SELECT</span> * <span class="kw">FROM</span> cards <span class="kw">WHERE</span> title <span class="kw">LIKE</span> <span class="param">?</span>' +
+        '<span class="sep"><span class="lab">value sent separately, as data</span><span class="param">(' + JSON.stringify('%' + t + '%') + ',)</span></span>';
+    }
+  }
+
+  function table(rows, cols, leakedFrom){
+    let h = '<table><thead><tr>';
+    cols.forEach(function(c){ h += '<th>' + c + '</th>'; });
+    h += '</tr></thead><tbody>';
+    rows.forEach(function(r, i){
+      h += '<tr class="' + (leakedFrom !== undefined && i >= leakedFrom ? 'leaked' : '') + '">';
+      cols.forEach(function(c){ h += '<td>' + esc(String(r[c] === undefined ? '' : r[c])) + '</td>'; });
+      h += '</tr>';
+    });
+    return h + '</tbody></table>';
+  }
+
+  function say(html){
+    verdictBody.innerHTML = html;
+    if(!reduce) gsap.from(verdictBody, {opacity:0, y:8, duration:.35});
+  }
+
+  document.getElementById('run').addEventListener('click', function(){
+    if(!mode){ say('<p>Choose how the query is built first.</p>'); return; }
+    const t = qEl.value;
+
+    if(dropped){
+      resultsEl.className = 'results breach';
+      rtitle.textContent = 'Error';
+      rbody.innerHTML = '<div class="destroyed">sqlite3.OperationalError: no such table: cards\n\nThe table is gone. Every card on every board is gone.\nRestore the database to continue.</div>';
+      return;
+    }
+
+    if(mode === 'param'){
+      const matches = CARDS.filter(function(c){
+        return c.title.toLowerCase().indexOf(t.toLowerCase()) !== -1;
+      });
+      resultsEl.className = 'results safe';
+      rtitle.textContent = matches.length + ' row(s) returned';
+      rbody.innerHTML = matches.length
+        ? table(matches, ['id','title','priority','board'])
+        : '<p class="none">No cards matched. The input was searched for as literal text, including any quotes and semicolons in it.</p>';
+      if(PAYLOADS.indexOf(t) !== -1){
+        say('<p><b>Nothing happened, and that is the entire point.</b> The database received the query and the value as two separate things. The value was never parsed as SQL, so <code>DROP TABLE</code> was searched for as a card title and found nothing.</p>' +
+            '<p>Notice that no escaping, no filtering, and no blocklist of dangerous words was involved. Parameterized queries do not clean the input. They send it down a channel where it cannot be code in the first place.</p>' +
+            '<p>This is why the rule is absolute: every value that came from a user goes in as a parameter, every time, with no exceptions for values you think are safe.</p>');
+      } else {
+        say('<p>An ordinary search, handled correctly. The <code>?</code> placeholder stays in the SQL and the value travels beside it.</p>' +
+            '<p>Now paste one of the payloads and run it again. Then switch to string building and run the same payload.</p>');
+      }
+      if(!reduce) gsap.from('#rbody', {opacity:0, y:8, duration:.3});
+      return;
+    }
+
+    if(t === PAYLOADS[0]){
+      resultsEl.className = 'results breach';
+      rtitle.textContent = '6 rows returned, including boards this user cannot access';
+      rbody.innerHTML = table(CARDS, ['id','title','priority','board','owner'], 5) +
+        '<p style="font-size:13.5px;color:var(--bad);margin:11px 0 0">The condition is now always true, so the WHERE clause filters nothing. Row 6 belongs to a private HR board.</p>';
+      say('<p>The quote closed the string, and <code>OR \'1\'=\'1\'</code> became part of the condition. Since that is always true, every row matched.</p>' +
+          '<p>On a login form this same payload logs an attacker in as the first user in the table. On a search box it returns every record in the database, including ones the user has no right to see. Nothing crashed and nothing looked broken, which is why this goes unnoticed for a long time.</p>');
+    }
+    else if(t === PAYLOADS[1]){
+      dropped = true;
+      resultsEl.className = 'results breach';
+      rtitle.textContent = 'Statement executed';
+      rbody.innerHTML = '<div class="destroyed">DROP TABLE cards;\n\nTable dropped. 6 cards deleted.\nThe two dashes commented out the rest of your query,\nso SQLite never complained about the leftover quote.\n\nThere is no undo.</div>';
+      if(!reduce) gsap.fromTo('.destroyed', {x:0}, {x:-5, duration:.06, repeat:7, yoyo:true});
+      say('<p>The semicolon ended your query and started a second one. The two dashes turned the rest of your original SQL into a comment, so nothing raised a syntax error.</p>' +
+          '<p>Every card on every board is gone. If this were your capstone in front of a client, the demonstration would be over. Backups are the only recovery, and a student project does not have any.</p>' +
+          '<p>Press Restore the database, switch to parameterized, and run the identical payload.</p>');
+    }
+    else if(t === PAYLOADS[2]){
+      resultsEl.className = 'results breach';
+      rtitle.textContent = '3 rows returned from a table you did not query';
+      rbody.innerHTML = table(USERS, ['id','email','password_hash'], 0) +
+        '<p style="font-size:13.5px;color:var(--bad);margin:11px 0 0">UNION attached a second SELECT to your query. The results come from the users table.</p>';
+      say('<p><code>UNION SELECT</code> lets an attacker append a completely different query to yours and receive the results through your own search box. Here it returned the users table, including password hashes.</p>' +
+          '<p>Those hashes can be attacked offline for as long as the attacker likes. This is how credential dumps happen, and the entry point is a search field somebody built in an afternoon.</p>');
+    }
+    else if(t.indexOf("'") !== -1){
+      resultsEl.className = 'results breach';
+      rtitle.textContent = 'Error';
+      rbody.innerHTML = '<div class="destroyed">sqlite3.OperationalError: unrecognized token\n\nThe stray quote broke the query syntax.\n\nHarmless this time. The same weakness with a\ncarefully chosen payload is not harmless.</div>';
+      say('<p>A single apostrophe was enough to break the query, which tells you the input is being treated as code rather than as data. A customer named O\'Brien would trigger this by accident.</p>' +
+          '<p>An accidental crash and a deliberate attack come through the same hole. Try one of the payloads to see the deliberate version.</p>');
+    }
+    else {
+      const matches = CARDS.filter(function(c){
+        return c.title.toLowerCase().indexOf(t.toLowerCase()) !== -1;
+      });
+      resultsEl.className = 'results';
+      rtitle.textContent = matches.length + ' row(s) returned';
+      rbody.innerHTML = matches.length
+        ? table(matches, ['id','title','priority','board'])
+        : '<p class="none">No cards matched.</p>';
+      say('<p>An ordinary search works fine, which is exactly why this code ships. It passes every test the developer runs, because developers type search terms rather than payloads.</p>' +
+          '<p>Now click one of the three payloads and run it.</p>');
+    }
+    if(!reduce) gsap.from('#rbody', {opacity:0, y:8, duration:.3});
+  });
+
+  document.getElementById('restore').addEventListener('click', function(){
+    dropped = false;
+    resultsEl.className = 'results';
+    rtitle.textContent = 'Results';
+    rbody.innerHTML = '<p class="none">Database restored. Press Run query.</p>';
+    say('<p>Restored. In a real system this step does not exist unless somebody set up backups before the incident.</p>');
+  });
+
+  drawSql();
+  if(!reduce){
+    gsap.from('header', {opacity:0, y:-10, duration:.5});
+    gsap.from('.mode', {opacity:0, y:10, duration:.35, stagger:.08, delay:.12});
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>From JSON to Tables | CIT 105 Module 7</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Questrial&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+  :root{
+    --ink:#171310; --paper:#F7F5F2; --au-maroon:#990000; --au-dark:#800000;
+    --au-red:#C00000; --rule:#DED8D2; --muted:#7A716B;
+    --ok:#2E6B4F; --bad:#A32020; --warn:#B26A00; --blue:#1F5C8B;
+    --display:'Questrial','Century Gothic',system-ui,sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--display);
+    line-height:1.55;padding:28px 20px 56px}
+  .wrap{max-width:1180px;margin:0 auto}
+  header{border-bottom:3px solid var(--au-maroon);padding-bottom:18px;margin-bottom:18px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--au-red);margin:0 0 8px}
+  h1{font-size:clamp(27px,3.8vw,42px);margin:0 0 10px;letter-spacing:-.02em}
+  .lede{margin:0;max-width:68ch;color:#40382F;font-size:16px}
+
+  .step{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--au-red);margin:22px 0 9px}
+
+  .tablewrap{background:#fff;border:1px solid var(--rule);border-radius:2px;padding:14px;overflow:auto}
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11.5px}
+  th{text-align:left;padding:6px 8px;background:var(--ink);color:#E8E2DA;font-weight:normal;
+    white-space:nowrap;position:relative}
+  th .assign{display:flex;gap:3px;margin-top:5px}
+  th .assign button{font-family:var(--mono);font-size:9px;padding:2px 5px;border:1px solid #4A423C;
+    background:#2A2320;color:#B9B1AA;border-radius:2px;cursor:pointer}
+  th .assign button:hover{background:#3A312C;color:#fff}
+  th .assign button[aria-pressed="true"]{background:var(--au-red);border-color:var(--au-red);color:#fff}
+  th.done-b{background:#1E4A38} th.done-c{background:#2A3A52}
+  td{padding:5px 8px;border-bottom:1px solid var(--rule);white-space:nowrap}
+  td.dup{background:#FFF3D6;color:var(--warn)}
+  td.typo{background:#FBECEC;color:var(--bad);font-weight:bold}
+  td.changed{background:#EAF4EE;color:var(--ok)}
+
+  .cols2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;align-items:start}
+  .mini{background:#fff;border:1px solid var(--rule);border-top:4px solid var(--rule);
+    border-radius:2px;padding:14px}
+  .mini.boards{border-top-color:var(--ok)}
+  .mini.cards{border-top-color:var(--blue)}
+  .mini h3{font-family:var(--mono);font-size:13px;margin:0 0 3px}
+  .mini .sub{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 11px}
+  .fk{font-family:var(--mono);font-size:10.5px;color:var(--blue);margin-top:9px;
+    padding-top:8px;border-top:1px dashed var(--rule)}
+
+  .anoms{margin-top:16px;background:#fff;border:1px solid var(--rule);border-radius:2px;padding:16px}
+  .anoms h3{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--au-red);margin:0 0 12px}
+  .arow{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 0;
+    border-bottom:1px dashed var(--rule)}
+  .arow:last-child{border-bottom:none}
+  .arow .t{font-size:14.5px}
+  .arow .t small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+  .arow .res{font-family:var(--mono);font-size:11.5px;margin-top:6px;padding:7px 9px;border-radius:2px;
+    display:none;white-space:pre-wrap;line-height:1.5}
+  .arow .res.show{display:block}
+  .arow .res.fail{background:#FBECEC;color:var(--bad);border-left:3px solid var(--bad)}
+  .arow .res.pass{background:#EAF4EE;color:var(--ok);border-left:3px solid var(--ok)}
+
+  button.act{font-family:var(--mono);font-size:12px;padding:8px 13px;cursor:pointer;
+    border:1px solid var(--ink);background:#fff;color:var(--ink);border-radius:2px;white-space:nowrap;
+    transition:background .15s,color .15s,transform .1s}
+  button.act:hover:not(:disabled){background:var(--ink);color:#fff}
+  button.act:active:not(:disabled){transform:translateY(1px)}
+  button.act:focus-visible{outline:3px solid var(--au-red);outline-offset:2px}
+  button.act:disabled{opacity:.32;cursor:not-allowed}
+  button.act.primary{background:var(--au-maroon);border-color:var(--au-maroon);color:#fff}
+  button.act.primary:hover:not(:disabled){background:var(--au-dark);border-color:var(--au-dark)}
+
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 0;align-items:center}
+  .prog{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--muted);margin-left:auto}
+  .prog b{color:var(--au-maroon)}
+
+  .ddl{margin-top:16px;background:var(--ink);color:#E8E2DA;font-family:var(--mono);font-size:12px;
+    padding:16px 18px;border-radius:2px;white-space:pre;overflow:auto;display:none}
+  .ddl.show{display:block}
+  .ddl .kw{color:#FF9F9F} .ddl .ty{color:#9FC8E8} .ddl .cmt{color:#7E756E} .ddl .fk{color:#B9D6A8}
+
+  .verdict{margin-top:16px;background:#fff;border:1px solid var(--rule);
+    border-left:4px solid var(--au-maroon);padding:16px 18px;border-radius:2px;min-height:60px}
+  .verdict h3{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--au-red);margin:0 0 8px}
+  .verdict p{margin:0 0 9px;font-size:15px;max-width:82ch}
+  .verdict p:last-child{margin-bottom:0}
+  .verdict code{font-family:var(--mono);background:var(--paper);padding:1px 5px;font-size:13px}
+
+  @media (max-width:900px){ .cols2{grid-template-columns:1fr} }
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">CIT 105 Programming Practice &middot; Module 7</p>
+    <h1>From JSON to Tables</h1>
+    <p class="lede">Your Kanban board currently stores everything in one flat list, and every card carries a copy of the board name and the owner's email. That duplication is not just wasteful. It causes three specific failures that have names, and you can trigger all three below before you fix them.</p>
+  </header>
+
+  <p class="step">The flat structure you have now</p>
+  <div class="tablewrap">
+    <table id="flat"></table>
+  </div>
+
+  <div class="anoms">
+    <h3>Three things that go wrong with flat data</h3>
+    <div id="anomlist"></div>
+  </div>
+
+  <p class="step">Now split it. Which table does each column belong to?</p>
+  <div class="tablewrap">
+    <table id="assign"></table>
+  </div>
+  <div class="controls">
+    <button class="act primary" id="build" disabled>Build the tables</button>
+    <button class="act" id="reset">Start over</button>
+    <span class="prog">assigned: <b id="ac">0</b> of 6</span>
+  </div>
+
+  <div class="cols2" id="split" style="display:none">
+    <section class="mini boards">
+      <h3>boards</h3>
+      <p class="sub">one row per board</p>
+      <div class="tablewrap" style="padding:0;border:none"><table id="tb"></table></div>
+      <p class="fk">PRIMARY KEY (id)</p>
+    </section>
+    <section class="mini cards">
+      <h3>cards</h3>
+      <p class="sub">one row per card</p>
+      <div class="tablewrap" style="padding:0;border:none"><table id="tc"></table></div>
+      <p class="fk">FOREIGN KEY (board_id) REFERENCES boards(id)</p>
+    </section>
+  </div>
+
+  <div class="ddl" id="ddl"></div>
+
+  <div class="verdict" id="verdict">
+    <h3>Where you are</h3>
+    <div id="verdict-body"><p>Try all three failures above, then split the columns into two tables.</p></div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const COLS = [
+    {k:'card_id', label:'card_id', belongs:'card'},
+    {k:'title', label:'title', belongs:'card'},
+    {k:'priority', label:'priority', belongs:'card'},
+    {k:'board_name', label:'board_name', belongs:'board'},
+    {k:'owner_name', label:'owner_name', belongs:'board'},
+    {k:'owner_email', label:'owner_email', belongs:'board'}
+  ];
+
+  let rows = [
+    {card_id:1, title:'Design the schema', priority:'high',   board_name:'Capstone Project', owner_name:'A. Ruiz', owner_email:'aruiz@au.edu'},
+    {card_id:2, title:'Build the form',    priority:'medium', board_name:'Capstone Project', owner_name:'A. Ruiz', owner_email:'aruiz@au.edu'},
+    {card_id:3, title:'Write the README',  priority:'low',    board_name:'Capstone Bord',    owner_name:'A. Ruiz', owner_email:'aruiz@au.edu'},
+    {card_id:4, title:'Set up hosting',    priority:'medium', board_name:'Capstone Project', owner_name:'A. Ruiz', owner_email:'aruiz@au.edu'},
+    {card_id:5, title:'Order the parts',   priority:'high',   board_name:'Shop Inventory',   owner_name:'D. Pena', owner_email:'dpena@au.edu'}
+  ];
+  const ORIGINAL = JSON.parse(JSON.stringify(rows));
+
+  const assigned = {};
+  let built = false;
+
+  const flatEl = document.getElementById('flat');
+  const assignEl = document.getElementById('assign');
+  const anomEl = document.getElementById('anomlist');
+  const splitEl = document.getElementById('split');
+  const ddlEl = document.getElementById('ddl');
+  const verdictBody = document.getElementById('verdict-body');
+
+  function drawFlat(highlight){
+    let h = '<thead><tr>';
+    COLS.forEach(function(c){ h += '<th>' + c.label + '</th>'; });
+    h += '</tr></thead><tbody>';
+    rows.forEach(function(r){
+      h += '<tr>';
+      COLS.forEach(function(c){
+        let cls = '';
+        if(!built && c.belongs === 'board') cls = 'dup';
+        if(c.k === 'board_name' && r[c.k] === 'Capstone Bord') cls = 'typo';
+        if(highlight && highlight.indexOf(r.card_id) !== -1 && c.k === 'board_name') cls = 'changed';
+        h += '<td class="' + cls + '">' + r[c.k] + '</td>';
+      });
+      h += '</tr>';
+    });
+    h += '</tbody>';
+    flatEl.innerHTML = h;
+  }
+
+  function drawAssign(){
+    let h = '<thead><tr>';
+    COLS.forEach(function(c){
+      const a = assigned[c.k];
+      h += '<th class="' + (a === 'board' ? 'done-b' : (a === 'card' ? 'done-c' : '')) + '">' + c.label +
+        '<span class="assign">' +
+        '<button data-k="' + c.k + '" data-v="board" aria-pressed="' + (a==='board') + '">boards</button>' +
+        '<button data-k="' + c.k + '" data-v="card" aria-pressed="' + (a==='card') + '">cards</button>' +
+        '</span></th>';
+    });
+    h += '</tr></thead>';
+    assignEl.innerHTML = h;
+    assignEl.querySelectorAll('button').forEach(function(b){
+      b.addEventListener('click', function(){
+        assigned[b.dataset.k] = b.dataset.v;
+        drawAssign();
+        const n = Object.keys(assigned).length;
+        document.getElementById('ac').textContent = n;
+        document.getElementById('build').disabled = n < COLS.length;
+      });
+    });
+  }
+
+  const ANOMS = [
+    { id:'update', title:'Update anomaly',
+      sub:'The board was renamed to "Q4 Roadmap". Update it.',
+      btn:'Rename the board',
+      run:function(){
+        if(!built){
+          const touched = [];
+          rows.forEach(function(r){
+            if(r.board_name === 'Capstone Project'){ r.board_name = 'Q4 Roadmap'; touched.push(r.card_id); }
+          });
+          drawFlat(touched);
+          return {ok:false, msg:'UPDATE touched 3 rows.\n\nCard 3 still reads "Capstone Bord" because of a typo,\nso the same board now has two names in your data.\nAny query filtering on board_name will miss that card.'};
+        }
+        return {ok:true, msg:'UPDATE boards SET name = "Q4 Roadmap" WHERE id = 1;\n\n1 row changed. Every card sees the new name immediately,\nbecause the name is stored in exactly one place.'};
+      } },
+    { id:'insert', title:'Insert anomaly',
+      sub:'A student wants to create a new empty board before adding any cards.',
+      btn:'Create an empty board',
+      run:function(){
+        if(!built){
+          return {ok:false, msg:'Not possible.\n\nA board only exists as a side effect of a card row.\nTo create the board you would have to invent a fake card,\nwhich then shows up on the board you just made.'};
+        }
+        return {ok:true, msg:'INSERT INTO boards (name, owner_email)\nVALUES ("New Board", "aruiz@au.edu");\n\nBoard created with zero cards. Perfectly normal.'};
+      } },
+    { id:'delete', title:'Delete anomaly',
+      sub:'Card 5 is the only card on the Shop Inventory board. Delete it.',
+      btn:'Delete the last card',
+      run:function(){
+        if(!built){
+          rows = rows.filter(function(r){ return r.card_id !== 5; });
+          drawFlat();
+          return {ok:false, msg:'Card deleted, and the Shop Inventory board is gone with it.\n\nThe board name and the owner email only existed inside\nthat row. Deleting one card destroyed information about\nsomething else entirely.'};
+        }
+        return {ok:true, msg:'DELETE FROM cards WHERE id = 5;\n\nThe card is gone. The board still exists, now empty,\nbecause it was never stored inside the card.'};
+      } }
+  ];
+
+  function drawAnoms(){
+    anomEl.innerHTML = '';
+    ANOMS.forEach(function(a){
+      const d = document.createElement('div');
+      d.className = 'arow';
+      d.innerHTML = '<div class="t">' + a.title + '<small>' + a.sub + '</small>' +
+        '<div class="res" id="res-' + a.id + '"></div></div>' +
+        '<button class="act" id="btn-' + a.id + '">' + a.btn + '</button>';
+      anomEl.appendChild(d);
+    });
+    ANOMS.forEach(function(a){
+      document.getElementById('btn-' + a.id).addEventListener('click', function(){
+        const out = a.run();
+        const el = document.getElementById('res-' + a.id);
+        el.className = 'res show ' + (out.ok ? 'pass' : 'fail');
+        el.textContent = out.msg;
+        if(!reduce) gsap.from(el, {opacity:0, y:6, duration:.3});
+        if(!built){
+          say('<p>That is one of the three classic anomalies, and all of them come from the same cause: the board information is copied into every card row instead of living in one place.</p>' +
+              '<p>Try the other two, then assign each column to a table below.</p>');
+        }
+      });
+    });
+  }
+
+  document.getElementById('build').addEventListener('click', function(){
+    const wrong = COLS.filter(function(c){ return assigned[c.k] !== c.belongs; });
+    if(wrong.length){
+      say('<p style="color:var(--bad)"><b>' + wrong.length + ' column(s) in the wrong table.</b></p>' +
+          '<p>The test for each column: does this value describe the card, or does it describe the board the card sits on? A card title changes per card. A board owner does not.</p>' +
+          '<p>Columns to reconsider: <code>' + wrong.map(function(w){ return w.label; }).join('</code>, <code>') + '</code></p>');
+      if(!reduce) gsap.fromTo('#assign', {x:0}, {x:-4, duration:.06, repeat:5, yoyo:true});
+      return;
+    }
+
+    built = true;
+    rows = JSON.parse(JSON.stringify(ORIGINAL));
+    rows[2].board_name = 'Capstone Project';
+    drawFlat();
+    drawAnoms();
+    splitEl.style.display = '';
+
+    const boards = [
+      {id:1, name:'Capstone Project', owner_name:'A. Ruiz', owner_email:'aruiz@au.edu'},
+      {id:2, name:'Shop Inventory', owner_name:'D. Pena', owner_email:'dpena@au.edu'}
+    ];
+    const cards = [
+      {id:1, title:'Design the schema', priority:'high', board_id:1},
+      {id:2, title:'Build the form', priority:'medium', board_id:1},
+      {id:3, title:'Write the README', priority:'low', board_id:1},
+      {id:4, title:'Set up hosting', priority:'medium', board_id:1},
+      {id:5, title:'Order the parts', priority:'high', board_id:2}
+    ];
+
+    document.getElementById('tb').innerHTML =
+      '<thead><tr><th>id</th><th>name</th><th>owner_name</th><th>owner_email</th></tr></thead><tbody>' +
+      boards.map(function(b){
+        return '<tr><td>' + b.id + '</td><td>' + b.name + '</td><td>' + b.owner_name + '</td><td>' + b.owner_email + '</td></tr>';
+      }).join('') + '</tbody>';
+
+    document.getElementById('tc').innerHTML =
+      '<thead><tr><th>id</th><th>title</th><th>priority</th><th>board_id</th></tr></thead><tbody>' +
+      cards.map(function(c){
+        return '<tr><td>' + c.id + '</td><td>' + c.title + '</td><td>' + c.priority + '</td><td style="color:var(--blue)">' + c.board_id + '</td></tr>';
+      }).join('') + '</tbody>';
+
+    ddlEl.innerHTML =
+      '<span class="cmt">-- two tables, one fact stored in one place</span>\n' +
+      '<span class="kw">CREATE TABLE</span> boards (\n' +
+      '    id          <span class="ty">INTEGER PRIMARY KEY AUTOINCREMENT</span>,\n' +
+      '    name        <span class="ty">TEXT NOT NULL</span>,\n' +
+      '    owner_name  <span class="ty">TEXT NOT NULL</span>,\n' +
+      '    owner_email <span class="ty">TEXT NOT NULL</span>\n' +
+      ');\n\n' +
+      '<span class="kw">CREATE TABLE</span> cards (\n' +
+      '    id       <span class="ty">INTEGER PRIMARY KEY AUTOINCREMENT</span>,\n' +
+      '    title    <span class="ty">TEXT NOT NULL</span>,\n' +
+      '    priority <span class="ty">TEXT NOT NULL CHECK</span>(priority <span class="kw">IN</span> (\'high\',\'medium\',\'low\')),\n' +
+      '    board_id <span class="ty">INTEGER NOT NULL</span>,\n' +
+      '    <span class="fk">FOREIGN KEY (board_id) REFERENCES boards(id)</span>\n' +
+      ');\n\n' +
+      '<span class="cmt">-- putting them back together when you need to display a card:</span>\n' +
+      '<span class="kw">SELECT</span> c.title, c.priority, b.name <span class="kw">AS</span> board\n' +
+      '<span class="kw">FROM</span> cards c\n' +
+      '<span class="kw">JOIN</span> boards b <span class="kw">ON</span> c.board_id = b.id\n' +
+      '<span class="kw">WHERE</span> b.owner_email = ?;';
+    ddlEl.classList.add('show');
+
+    say('<p><b>Correct split.</b> The board name and owner now live in one row each, and every card points at a board with <code>board_id</code>. That single column is the foreign key, and it is what makes the three anomalies disappear.</p>' +
+        '<p>Run all three failures again above. The rename touches one row, an empty board is now a perfectly ordinary thing to create, and deleting the last card leaves the board standing.</p>' +
+        '<p>Notice the <code>CHECK</code> constraint on priority. The database itself now refuses a value outside the three allowed ones, which means a bug in your Python cannot write nonsense into the column.</p>');
+
+    if(!reduce){
+      gsap.from('.mini', {opacity:0, y:14, duration:.45, stagger:.1});
+      gsap.from(ddlEl, {opacity:0, y:10, duration:.4, delay:.2});
+    }
+  });
+
+  document.getElementById('reset').addEventListener('click', function(){
+    rows = JSON.parse(JSON.stringify(ORIGINAL));
+    Object.keys(assigned).forEach(function(k){ delete assigned[k]; });
+    built = false;
+    document.getElementById('ac').textContent = '0';
+    document.getElementById('build').disabled = true;
+    splitEl.style.display = 'none';
+    ddlEl.classList.remove('show');
+    drawFlat(); drawAssign(); drawAnoms();
+    say('<p>Try all three failures above, then split the columns into two tables.</p>');
+  });
+
+  function say(html){
+    verdictBody.innerHTML = html;
+    if(!reduce) gsap.from(verdictBody, {opacity:0, y:8, duration:.35});
+  }
+
+  drawFlat(); drawAssign(); drawAnoms();
+  if(!reduce){
+    gsap.from('header', {opacity:0, y:-10, duration:.5});
+    gsap.from('.tablewrap', {opacity:0, y:12, duration:.4, stagger:.08, delay:.12});
+  }
+})();
+</script>
+</body>
+</html>
